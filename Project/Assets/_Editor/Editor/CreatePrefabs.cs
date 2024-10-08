@@ -187,5 +187,29 @@ namespace AkaitoAi
                 Debug.LogError("Prefab not found at path: " + prefabPath);
             }
         }
+        
+        [MenuItem("AkaitoAi/Setup/Misc/TimelineCutScene")]
+        public static void CreateTimelineCutScene()
+        {
+            // Ensure the path includes ".prefab"
+            string prefabPath = "Assets/_Editor/Prefabs/TimelineCutscene.prefab";
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+            // Check if the prefab is found
+            if (prefab != null)
+            {
+                // Instantiate the prefab in the scene
+                GameObject timelineCutscene = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                timelineCutscene.transform.position = Vector3.zero;
+                timelineCutscene.transform.rotation = Quaternion.identity;
+                timelineCutscene.name = "TimelineCutscene";
+                Selection.activeGameObject = timelineCutscene;
+            }
+            else
+            {
+                // Log an error if the prefab is not found
+                Debug.LogError("Prefab not found at path: " + prefabPath);
+            }
+        }
     }
 }
