@@ -72,7 +72,38 @@ namespace AkaitoAi
             }
         }
 
+        [MenuItem("AkaitoAi/Misc/UpdateManager")]
+        public static void CreateUpdateManager()
+        {
+            // Check if already exists in the scene
+            if (GameObject.FindObjectOfType<UpdateManager>())
+            {
+                EditorUtility.DisplayDialog("Scene has UpdateManager already!", "Scene has UpdateManager already!", "Close");
+                Selection.activeGameObject = GameObject.FindObjectOfType<UpdateManager>().gameObject;
+            }
+            else
+            {
+                // Ensure the path includes ".prefab"
+                string prefabPath = "Assets/_Editor/Prefabs/UpdateManager.prefab";
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
 
+                // Check if the prefab is found
+                if (prefab != null)
+                {
+                    // Instantiate the prefab in the scene
+                    GameObject updateManager = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                    updateManager.transform.position = Vector3.zero;
+                    updateManager.transform.rotation = Quaternion.identity;
+                    updateManager.name = "UpdateManager";
+                    Selection.activeGameObject = updateManager;
+                }
+                else
+                {
+                    // Log an error if the prefab is not found
+                    Debug.LogError("Prefab not found at path: " + prefabPath);
+                }
+            }
+        }
 
         [MenuItem("AkaitoAi/Misc/TimeOfDay")]
         public static void CreateTimeOfDay()
@@ -139,7 +170,7 @@ namespace AkaitoAi
                 }
             }
         }
-        
+
         [MenuItem("AkaitoAi/Misc/InEditorGridGenetator")]
         public static void CreateInEditorGridGenetator()
         {
@@ -163,7 +194,7 @@ namespace AkaitoAi
                 Debug.LogError("Prefab not found at path: " + prefabPath);
             }
         }
-        
+
         [MenuItem("AkaitoAi/Misc/RuntimeGridGenetator")]
         public static void CreateRuntimeGridGenetator()
         {
@@ -187,7 +218,7 @@ namespace AkaitoAi
                 Debug.LogError("Prefab not found at path: " + prefabPath);
             }
         }
-        
+
         [MenuItem("AkaitoAi/Misc/TimelineCutScene")]
         public static void CreateTimelineCutScene()
         {
