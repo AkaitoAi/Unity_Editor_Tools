@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace AkaitoAi.Texture
+namespace AkaitoAi
 {
     public class RandomTexture : MonoBehaviour
     {

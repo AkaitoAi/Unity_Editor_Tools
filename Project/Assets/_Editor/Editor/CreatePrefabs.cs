@@ -74,7 +74,7 @@ namespace AkaitoAi
 
 
 
-        [MenuItem("AkaitoAi/Setup/Misc/TimeOfDay")]
+        [MenuItem("AkaitoAi/Misc/TimeOfDay")]
         public static void CreateTimeOfDay()
         {
             // Check if already exists in the scene
@@ -107,7 +107,7 @@ namespace AkaitoAi
             }
         }
 
-        [MenuItem("AkaitoAi/Setup/Misc/AdsWrapper")]
+        [MenuItem("AkaitoAi/Setup/AdsWrapper")]
         public static void CreateAdsWrapper()
         {
             // Check if already exists in the scene
@@ -140,7 +140,7 @@ namespace AkaitoAi
             }
         }
         
-        [MenuItem("AkaitoAi/Setup/Misc/InEditorGridGenetator")]
+        [MenuItem("AkaitoAi/Misc/InEditorGridGenetator")]
         public static void CreateInEditorGridGenetator()
         {
             // Ensure the path includes ".prefab"
@@ -164,7 +164,7 @@ namespace AkaitoAi
             }
         }
         
-        [MenuItem("AkaitoAi/Setup/Misc/RuntimeGridGenetator")]
+        [MenuItem("AkaitoAi/Misc/RuntimeGridGenetator")]
         public static void CreateRuntimeGridGenetator()
         {
             // Ensure the path includes ".prefab"
@@ -188,7 +188,7 @@ namespace AkaitoAi
             }
         }
         
-        [MenuItem("AkaitoAi/Setup/Misc/TimelineCutScene")]
+        [MenuItem("AkaitoAi/Misc/TimelineCutScene")]
         public static void CreateTimelineCutScene()
         {
             // Ensure the path includes ".prefab"
@@ -204,6 +204,30 @@ namespace AkaitoAi
                 timelineCutscene.transform.rotation = Quaternion.identity;
                 timelineCutscene.name = "TimelineCutscene";
                 Selection.activeGameObject = timelineCutscene;
+            }
+            else
+            {
+                // Log an error if the prefab is not found
+                Debug.LogError("Prefab not found at path: " + prefabPath);
+            }
+        }
+
+        [MenuItem("AkaitoAi/Misc/RuntimeMeshCombine")]
+        public static void CreateRuntimeMeshCombine()
+        {
+            // Ensure the path includes ".prefab"
+            string prefabPath = "Assets/_Editor/Prefabs/RuntimeMeshCombine.prefab";
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+            // Check if the prefab is found
+            if (prefab != null)
+            {
+                // Instantiate the prefab in the scene
+                GameObject runtimeMeshCombine = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                runtimeMeshCombine.transform.position = Vector3.zero;
+                runtimeMeshCombine.transform.rotation = Quaternion.identity;
+                runtimeMeshCombine.name = "RuntimeMeshCombine";
+                Selection.activeGameObject = runtimeMeshCombine;
             }
             else
             {

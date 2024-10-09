@@ -2,13 +2,16 @@ using AkaitoAi.Extensions;
 using Cinemachine;
 using UnityEngine;
 
-public class CinemachineUtility : MonoBehaviour
+namespace AkaitoAi.Cinemachine
 {
-    [SerializeField] private CinemachineBrain cBrain;
-
-    private void Start()
+    public class CinemachineUtility : MonoBehaviour
     {
-        cBrain.GetOrAddComponent<CinemachineUtility>();
+        [SerializeField] private CinemachineBrain cBrain;
+
+        private void Start()
+        {
+            cBrain.GetOrAddComponent<CinemachineUtility>();
+        }
+        public void ChangeBlendTime(float _time) => cBrain.m_DefaultBlend.m_Time = _time;
     }
-    public void ChangeBlendTime(float _time) => cBrain.m_DefaultBlend.m_Time = _time;
 }

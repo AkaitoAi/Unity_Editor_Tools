@@ -3,60 +3,63 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 
-public class TimeOfDay : MonoBehaviour
+namespace AkaitoAi
 {
-    [SerializeField] private LightSettingSO lightSetting;
-    [SerializeField] private Transform[] switchObjects;
-    [SerializeField] private Button[] switchButtons;
-    internal int switchIndex = 0;
-
-    [SerializeField] private string prefsName = "TimeOfDay";
-    internal int index;
-
-    public static event Action<int> OnTimeOfDayAction;
-    public UnityEvent OnStartEvent;
-
-    private void Start()
+    public class TimeOfDay : MonoBehaviour
     {
-        OnStartEvent?.Invoke();
-    }
+        [SerializeField] private LightSettingSO lightSetting;
+        [SerializeField] private Transform[] switchObjects;
+        [SerializeField] private Button[] switchButtons;
+        internal int switchIndex = 0;
 
-    public void OnWeatherSwitch(int index)
-    {
-        foreach (Transform switchObject in switchObjects)
-            switchObject.gameObject.SetActive(false);
+        [SerializeField] private string prefsName = "TimeOfDay";
+        internal int index;
 
-        foreach (Button btn in switchButtons)
-            btn.interactable = true;
+        public static event Action<int> OnTimeOfDayAction;
+        public UnityEvent OnStartEvent;
 
-        switchObjects[index].gameObject.SetActive(true);
-        switchButtons[index].interactable = false;
-        lightSetting.SceneLightSetup(lightSetting.lightSettings[index]);
-
-        PlayerPrefs.SetInt(prefsName, index);
-
-        OnTimeOfDayAction?.Invoke(index);
-    }
-
-    public void SequenceWeatherSwitch()
-    {
-        switchIndex = PlayerPrefs.GetInt(prefsName, switchIndex);
-
-        for (index = 0; index < switchObjects.Length; index++)
+        private void Start()
         {
-            if (index == switchIndex)
-            {
-                switchObjects[index].gameObject.SetActive(true);
-                lightSetting.SceneLightSetup(lightSetting.lightSettings[index]);
-            }
-            else switchObjects[index].gameObject.SetActive(false);
+            OnStartEvent?.Invoke();
         }
 
-        if (switchIndex < switchObjects.Length - 1) switchIndex++;
-        else switchIndex = 0;
+        public void OnWeatherSwitch(int index)
+        {
+            foreach (Transform switchObject in switchObjects)
+                switchObject.gameObject.SetActive(false);
 
-        PlayerPrefs.SetInt(prefsName, switchIndex);
+            foreach (Button btn in switchButtons)
+                btn.interactable = true;
 
-        OnTimeOfDayAction?.Invoke(switchIndex);
+            switchObjects[index].gameObject.SetActive(true);
+            switchButtons[index].interactable = false;
+            lightSetting.SceneLightSetup(lightSetting.lightSettings[index]);
+
+            PlayerPrefs.SetInt(prefsName, index);
+
+            OnTimeOfDayAction?.Invoke(index);
+        }
+
+        public void SequenceWeatherSwitch()
+        {
+            switchIndex = PlayerPrefs.GetInt(prefsName, switchIndex);
+
+            for (index = 0; index < switchObjects.Length; index++)
+            {
+                if (index == switchIndex)
+                {
+                    switchObjects[index].gameObject.SetActive(true);
+                    lightSetting.SceneLightSetup(lightSetting.lightSettings[index]);
+                }
+                else switchObjects[index].gameObject.SetActive(false);
+            }
+
+            if (switchIndex < switchObjects.Length - 1) switchIndex++;
+            else switchIndex = 0;
+
+            PlayerPrefs.SetInt(prefsName, switchIndex);
+
+            OnTimeOfDayAction?.Invoke(switchIndex);
+        }
     }
 }

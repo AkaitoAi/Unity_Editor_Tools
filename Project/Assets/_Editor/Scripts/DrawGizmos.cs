@@ -1,16 +1,19 @@
 using UnityEngine;
 
-public class DrawGizmos : MonoBehaviour
+namespace AkaitoAi
 {
-    [SerializeField] private Color g_Color = Color.white;
-    [SerializeField] private float g_Radius = 1.0f;
-    private void OnDrawGizmos()
+    public class DrawGizmos : MonoBehaviour
     {
-        if (Application.isPlaying) return;
+        [SerializeField] private Color g_Color = Color.white;
+        [SerializeField] private float g_Radius = 1.0f;
+        private void OnDrawGizmos()
+        {
+            if (Application.isPlaying) return;
 
-        Gizmos.color = g_Color;
-        Gizmos.DrawSphere(new Vector3 
-            (transform.localPosition.x, transform.localPosition.y, transform.localPosition.z), 
-            g_Radius);
+            Gizmos.color = g_Color;
+            Gizmos.DrawSphere(new Vector3
+                (transform.localPosition.x, transform.localPosition.y, transform.localPosition.z),
+                g_Radius);
+        }
     }
 }
