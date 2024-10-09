@@ -2,6 +2,8 @@
 using UnityEngine.UI;
 using System.Collections;
 using System.Text;
+using AkaitoAi.Singleton;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -12,7 +14,7 @@ using UnityEngine.Profiling;
 namespace AkaitoAi
 {
     //-----------------------------------------------------------------------------------------------------
-    public class ProfileReader : MonoBehaviour
+    public class ProfileReader : SingletonPresistent<ProfileReader>
     {
         StringBuilder SB;
         public Text txt;
@@ -21,21 +23,10 @@ namespace AkaitoAi
         float frames = 0;                       // Frames over current interval
         float framesavtick = 0;
         float framesav = 0.0f;
-        public static ProfileReader profileReader;
 
         // Use this for initialization
         void Start()
         {
-            if (profileReader == null)
-            {
-                profileReader = this;
-                DontDestroyOnLoad(gameObject);
-            }
-            else
-            {
-                DestroyImmediate(gameObject);
-            }
-
             lastInterval = Time.realtimeSinceStartup;
             frames = 0;
             framesav = 0;
