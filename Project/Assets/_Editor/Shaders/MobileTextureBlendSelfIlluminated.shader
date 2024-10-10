@@ -5,12 +5,14 @@ Shader "Akaito Ai/Mobile/Blend/TextureBlendSelfIlluminated"
         // Texture 1
         _MainTex ("Texture 1", 2D) = "white" {}
         _MainColor1 ("Main Color 1", Color) = (1, 1, 1, 1)
-        _MainTex_ST ("Texture 1 Tiling & Offset", Vector) = (1, 1, 0, 0) // Tiling and Offset for Texture 1
+        _MainTex_ST ("Texture 1 Tiling & Offset", Vector) = (1, 1, 0, 0)
+        _EmissionColor1 ("Emission Color 1", Color) = (0, 0, 0, 1) // Emission for Texture 1
 
         // Texture 2
         _SecondTex ("Texture 2", 2D) = "white" {}
         _MainColor2 ("Main Color 2", Color) = (1, 1, 1, 1)
-        _SecondTex_ST ("Texture 2 Tiling & Offset", Vector) = (1, 1, 0, 0) // Tiling and Offset for Texture 2
+        _SecondTex_ST ("Texture 2 Tiling & Offset", Vector) = (1, 1, 0, 0)
+        _EmissionColor2 ("Emission Color 2", Color) = (0, 0, 0, 1) // Emission for Texture 2
 
         // Blending control
         _Blend ("Blend Factor", Range(0, 1)) = 0.5
@@ -29,6 +31,7 @@ Shader "Akaito Ai/Mobile/Blend/TextureBlendSelfIlluminated"
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #pragma target 2.0 // Ensure compatibility with mobile platforms
             #include "UnityCG.cginc"
 
             sampler2D _MainTex;
@@ -37,7 +40,10 @@ Shader "Akaito Ai/Mobile/Blend/TextureBlendSelfIlluminated"
             fixed4 _MainColor1;
             fixed4 _MainColor2;
 
-            float _Blend;
+            fixed _Blend; // Use fixed precision for mobile optimization
+
+            fixed4 _EmissionColor1; // Emission color for Texture 1
+            fixed4 _EmissionColor2; // Emission color for Texture 2
 
             float4 _MainTex_ST;   // Tiling & Offset for Texture 1
             float4 _SecondTex_ST; // Tiling & Offset for Texture 2
@@ -59,25 +65,32 @@ Shader "Akaito Ai/Mobile/Blend/TextureBlendSelfIlluminated"
             {
                 v2f o;
                 o.pos = UnityObjectToClipPos(v.vertex);
-                o.uv_MainTex = TRANSFORM_TEX(v.uv, _MainTex);   // Apply tiling and offset for Texture 1
-                o.uv_SecondTex = TRANSFORM_TEX(v.uv, _SecondTex); // Apply tiling and offset for Texture 2
+                o.uv_MainTex = TRANSFORM_TEX(v.uv, _MainTex);
+                o.uv_SecondTex = TRANSFORM_TEX(v.uv, _SecondTex);
                 return o;
             }
 
             fixed4 frag(v2f i) : SV_Target
             {
-                // Sample both textures and apply their respective colors
-                fixed4 col1 = tex2D(_MainTex, i.uv_MainTex) * _MainColor1; // Multiply by color property
-                fixed4 col2 = tex2D(_SecondTex, i.uv_SecondTex) * _MainColor2; // Multiply by color property
+                // Sample both textures
+                fixed4 col1 = tex2D(_MainTex, i.uv_MainTex) * _MainColor1;
+                fixed4 col2 = tex2D(_SecondTex, i.uv_SecondTex) * _MainColor2;
 
-                // Blend between the two main colors/textures
+                // Add emission for each texture
+                fixed4 emission1 = _EmissionColor1 * tex2D(_MainTex, i.uv_MainTex);
+                fixed4 emission2 = _EmissionColor2 * tex2D(_SecondTex, i.uv_SecondTex);
+
+                // Blend between the two textures
                 fixed4 baseColor = lerp(col1, col2, _Blend);
 
-                // Final output: self-illuminated color
-                return baseColor; // Return the final self-illuminated color
+                // Add per-texture emission to the base color
+                fixed4 finalColor = baseColor + lerp(emission1, emission2, _Blend);
+
+                return finalColor;
             }
             ENDCG
         }
     }
+
     FallBack "Diffuse"
 }
