@@ -28,7 +28,6 @@ MonoBehaviour:
     directionalLight: {fileID: 0}
     directionalLightColor: {r: 0, g: 0, b: 0, a: 0}
     reflectionProbeObj: {fileID: 0}
-    swap: 0
   - gradientColor: 0
     skyColor: {r: 0.54901963, g: 0.5882353, b: 0.6431373, a: 1}
     equatorColor: {r: 0.54901963, g: 0.5882353, b: 0.6431373, a: 1}
@@ -44,7 +43,6 @@ MonoBehaviour:
     directionalLight: {fileID: 0}
     directionalLightColor: {r: 0, g: 0, b: 0, a: 0}
     reflectionProbeObj: {fileID: 0}
-    swap: 0
   - gradientColor: 0
     skyColor: {r: 0.78431374, g: 0.76862746, b: 0.7529412, a: 1}
     equatorColor: {r: 0.78431374, g: 0.76862746, b: 0.7529412, a: 1}
@@ -60,7 +58,6 @@ MonoBehaviour:
     directionalLight: {fileID: 0}
     directionalLightColor: {r: 0, g: 0, b: 0, a: 0}
     reflectionProbeObj: {fileID: 0}
-    swap: 0
   - gradientColor: 0
     skyColor: {r: 0.58431375, g: 0.5803922, b: 0.5764706, a: 1}
     equatorColor: {r: 0.58431375, g: 0.5803922, b: 0.5764706, a: 1}
@@ -76,7 +73,6 @@ MonoBehaviour:
     directionalLight: {fileID: 0}
     directionalLightColor: {r: 0, g: 0, b: 0, a: 0}
     reflectionProbeObj: {fileID: 0}
-    swap: 0
   - gradientColor: 0
     skyColor: {r: 1, g: 1, b: 1, a: 1}
     equatorColor: {r: 1, g: 1, b: 1, a: 1}
@@ -92,5 +88,3 @@ MonoBehaviour:
     directionalLight: {fileID: 0}
     directionalLightColor: {r: 0, g: 0, b: 0, a: 0}
     reflectionProbeObj: {fileID: 0}
-    swap: 1
-  textureSwaper: {fileID: 11400000, guid: adb29611531e30a4a87916bda37a9b03, type: 2}
