@@ -61,5 +61,19 @@ namespace AkaitoAi
 
             OnTimeOfDayAction?.Invoke(switchIndex);
         }
+
+        public void RandomWeatherSwitch()
+        {
+            int randomIndex = UnityEngine.Random.Range(0, switchObjects.Length);
+
+            foreach (Transform switchObject in switchObjects)
+                switchObject.gameObject.SetActive(false);
+
+            switchObjects[randomIndex].gameObject.SetActive(true);
+
+            PlayerPrefs.SetInt(prefsName, randomIndex);
+
+            OnTimeOfDayAction?.Invoke(randomIndex);
+        }
     }
 }
