@@ -20,6 +20,12 @@ namespace AkaitoAi
 
         private void Start()
         {
+            for (int i = 0; i < switchButtons.Length; i++)
+            {
+                int buttonIndex = i;
+                switchButtons[i].onClick.AddListener(() => OnWeatherSwitch(buttonIndex));
+            }
+
             OnStartEvent?.Invoke();
         }
 
@@ -42,7 +48,7 @@ namespace AkaitoAi
 
         public void SequenceWeatherSwitch()
         {
-            switchIndex = PlayerPrefs.GetInt(prefsName, switchIndex);
+            switchIndex = Mathf.Clamp(PlayerPrefs.GetInt(prefsName, switchIndex), 0, switchObjects.Length - 1);
 
             for (index = 0; index < switchObjects.Length; index++)
             {
