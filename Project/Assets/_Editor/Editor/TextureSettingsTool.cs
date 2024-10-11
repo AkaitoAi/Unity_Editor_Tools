@@ -20,19 +20,19 @@ namespace AkaitoAi
         private bool overrideForAndroid = true;
         private TextureImporterFormat androidFormat = TextureImporterFormat.ASTC_12x12;
         private int androidCompressionQuality = 100;
-        private int androidMaxSizeIndex = 6; // Default 1024
+        private int androidMaxSizeIndex = 5; // Default 1024
 
         // iOS settings
         private bool overrideForiOS = true;
         private TextureImporterFormat iosFormat = TextureImporterFormat.ASTC_4x4;
         private int iosCompressionQuality = 50;
-        private int iosMaxSizeIndex = 6; // Default 1024
+        private int iosMaxSizeIndex = 5; // Default 1024
 
         // Standalone settings
         private bool overrideForStandalone = true;
         private TextureImporterFormat standaloneFormat = TextureImporterFormat.DXT5;
         private int standaloneCompressionQuality = 50;
-        private int standaloneMaxSizeIndex = 6; // Default 1024
+        private int standaloneMaxSizeIndex = 5; // Default 1024
 
         private int[] maxSizeOptions = { 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192 };
 
