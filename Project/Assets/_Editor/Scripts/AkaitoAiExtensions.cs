@@ -864,7 +864,22 @@ namespace AkaitoAi.Extensions
             return UnityEngine.Random.Range(0, chanceMax) < chance;
         }
 
-        #endregion
+        public static void InEditor(Action inEditor)
+        {
+#if UNITY_EDITOR
+            inEditor?.Invoke();
+#endif
+        }
+        public static void InEditor(Action inEditor, Action inBuild)
+        {
+#if UNITY_EDITOR
+            inEditor?.Invoke();
+#else
+            inBuild?.Invoke();
+#endif
+        }
+
+#endregion
 
         #region Normalize
 
