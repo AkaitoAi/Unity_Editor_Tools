@@ -88,7 +88,6 @@ namespace AkaitoAi
 
             Debug.Log($"Resolution set to: {newWidth}x{newHeight} ({percentage * 100}%)");
         }
-        public void RunTimeStaticBatching(GameObject _parent) => StaticBatchingUtility.Combine(_parent); //Sets static batching on runtime
 
         //? Add in funtion to know from where the function us being called
         //print((new System.Diagnostics.StackTrace()).GetFrame(1).GetMethod().Name); 
