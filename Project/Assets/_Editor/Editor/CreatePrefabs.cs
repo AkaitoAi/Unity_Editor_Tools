@@ -1,6 +1,7 @@
 using AkaitoAi.Advertisement;
 using UnityEditor;
 using UnityEngine;
+using AkaitoAi.AudioSystem;
 
 namespace AkaitoAi
 {
@@ -288,6 +289,90 @@ namespace AkaitoAi
             {
                 // Log an error if the prefab is not found
                 Debug.LogError("Prefab not found at path: " + prefabPath);
+            }
+        }
+
+        [MenuItem("AkaitoAi/Setup/AudioManager")]
+        public static void CreateAudioManager()
+        {
+            // Check if already exists in the scene
+            if (GameObject.FindObjectOfType<AudioManager>())
+            {
+                EditorUtility.DisplayDialog("Scene has AudioManager already!", "Scene has AudioManager already!", "Close");
+                Selection.activeGameObject = GameObject.FindObjectOfType<AudioManager>().gameObject;
+            }
+            else
+            {
+                // Ensure the path includes ".prefab"
+                string prefabPath = "Assets/_Editor/Prefabs/AudioManager.prefab";
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+                // Check if the prefab is found
+                if (prefab != null)
+                {
+                    // Instantiate the prefab in the scene
+                    GameObject audioManager = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                    audioManager.transform.position = Vector3.zero;
+                    audioManager.transform.rotation = Quaternion.identity;
+                    audioManager.name = "AudioManager";
+                    Selection.activeGameObject = audioManager;
+                }
+                else
+                {
+                    // Log an error if the prefab is not found
+                    Debug.LogError("Prefab not found at path: " + prefabPath);
+                }
+            }
+        }
+
+        [MenuItem("AkaitoAi/Misc/OnDragCameraRotator")]
+        public static void CreateDragCameraRotator()
+        {
+            // Check if already exists in the scene
+            if (GameObject.FindObjectOfType<OnDragCameraRotater>())
+            {
+                EditorUtility.DisplayDialog("Scene has DragCameraRotator already!", "Scene has DragCameraRotator already!", "Close");
+                Selection.activeGameObject = GameObject.FindObjectOfType<OnDragCameraRotater>().gameObject;
+            }
+            else
+            {
+                // Ensure the path includes ".prefab"
+                string prefabPath = "Assets/_Editor/Prefabs/CameraContainer.prefab";
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+                string _prefabPath = "Assets/_Editor/Prefabs/UIDrag.prefab";
+                GameObject _prefab = AssetDatabase.LoadAssetAtPath<GameObject>(_prefabPath);
+
+                // Check if the prefab is found
+                if (prefab != null)
+                {
+                    // Instantiate the prefab in the scene
+                    GameObject cameraContainer = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                    cameraContainer.transform.position = Vector3.zero;
+                    cameraContainer.transform.rotation = Quaternion.identity;
+                    cameraContainer.name = "CameraContainer";
+                    Selection.activeGameObject = cameraContainer;
+                }
+                else
+                {
+                    // Log an error if the prefab is not found
+                    Debug.LogError("Prefab not found at path: " + prefabPath);
+                }
+                
+                if (_prefab != null)
+                {
+                    // Instantiate the prefab in the scene
+                    GameObject uiDrag = (GameObject)PrefabUtility.InstantiatePrefab(_prefab);
+                    uiDrag.transform.position = Vector3.zero;
+                    uiDrag.transform.rotation = Quaternion.identity;
+                    uiDrag.name = "UIDrag";
+                    Selection.activeGameObject = uiDrag;
+                }
+                else
+                {
+                    // Log an error if the prefab is not found
+                    Debug.LogError("Prefab not found at path: " + _prefabPath);
+                }
             }
         }
     }
