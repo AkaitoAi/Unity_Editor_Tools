@@ -266,5 +266,29 @@ namespace AkaitoAi
                 Debug.LogError("Prefab not found at path: " + prefabPath);
             }
         }
+
+        [MenuItem("AkaitoAi/Misc/LineRenderer Route System")]
+        public static void CreateLineRendererRouteSystem()
+        {
+            // Ensure the path includes ".prefab"
+            string prefabPath = "Assets/_Editor/Prefabs/LineRendererRoute.prefab";
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+            // Check if the prefab is found
+            if (prefab != null)
+            {
+                // Instantiate the prefab in the scene
+                GameObject lineRendererRoute = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                lineRendererRoute.transform.position = Vector3.zero;
+                lineRendererRoute.transform.rotation = Quaternion.identity;
+                lineRendererRoute.name = "LineRendererRoute";
+                Selection.activeGameObject = lineRendererRoute;
+            }
+            else
+            {
+                // Log an error if the prefab is not found
+                Debug.LogError("Prefab not found at path: " + prefabPath);
+            }
+        }
     }
 }
