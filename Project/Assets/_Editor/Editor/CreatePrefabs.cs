@@ -106,30 +106,30 @@ namespace AkaitoAi
             }
         }
 
-        [MenuItem("AkaitoAi/Misc/TimeOfDay")]
-        public static void CreateTimeOfDay()
+        [MenuItem("AkaitoAi/Misc/Weather")]
+        public static void CreateWeather()
         {
             // Check if already exists in the scene
-            if (GameObject.FindObjectOfType<TimeOfDay>())
+            if (GameObject.FindObjectOfType<Weather>())
             {
-                EditorUtility.DisplayDialog("Scene has TimeOfDay already!", "Scene has TimeOfDay already!", "Close");
-                Selection.activeGameObject = GameObject.FindObjectOfType<TimeOfDay>().gameObject;
+                EditorUtility.DisplayDialog("Scene has Weather already!", "Scene has Weather already!", "Close");
+                Selection.activeGameObject = GameObject.FindObjectOfType<Weather>().gameObject;
             }
             else
             {
                 // Ensure the path includes ".prefab"
-                string prefabPath = "Assets/_Editor/Prefabs/TimeOfDay.prefab";
+                string prefabPath = "Assets/_Editor/Prefabs/Weather.prefab";
                 GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
 
                 // Check if the prefab is found
                 if (prefab != null)
                 {
                     // Instantiate the prefab in the scene
-                    GameObject timeOfDay = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-                    timeOfDay.transform.position = Vector3.zero;
-                    timeOfDay.transform.rotation = Quaternion.identity;
-                    timeOfDay.name = "AdsWrapper";
-                    Selection.activeGameObject = timeOfDay;
+                    GameObject weather = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                    weather.transform.position = Vector3.zero;
+                    weather.transform.rotation = Quaternion.identity;
+                    weather.name = "Weather";
+                    Selection.activeGameObject = weather;
                 }
                 else
                 {

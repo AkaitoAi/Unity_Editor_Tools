@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5503630295256288555}
   - component: {fileID: 5503630295256288554}
   m_Layer: 0
-  m_Name: TimeOfDay
+  m_Name: Weather
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -54,7 +54,11 @@ MonoBehaviour:
   - {fileID: 5503630295894605483}
   - {fileID: 5503630296753480333}
   - {fileID: 5503630296029210113}
-  prefsName: TimeOfDay
+  switchButtons: []
+  prefsName: CurrentWeather
+  OnStartEvent:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &5503630295894605480
 GameObject:
   m_ObjectHideFlags: 0

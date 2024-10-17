@@ -5,18 +5,19 @@ using UnityEngine.Events;
 
 namespace AkaitoAi
 {
-    public class TimeOfDay : MonoBehaviour
+    public class Weather : MonoBehaviour
     {
         [SerializeField] private LightSettingSO lightSetting;
         [SerializeField] private Transform[] switchObjects;
         [SerializeField] private Button[] switchButtons;
         internal int switchIndex = 0;
 
-        [SerializeField] private string prefsName = "TimeOfDay";
+        [SerializeField] private string prefsName = "CurrentWeather";
         internal int index;
 
-        public static event Action<int> OnTimeOfDayAction;
+        public static event Action<int> OnWeatherChangedAction;
         public UnityEvent OnStartEvent;
+        public UnityEvent OnWeatherChangedEvent;
 
         private void Start()
         {
@@ -43,7 +44,8 @@ namespace AkaitoAi
 
             PlayerPrefs.SetInt(prefsName, index);
 
-            OnTimeOfDayAction?.Invoke(index);
+            OnWeatherChangedAction?.Invoke(index);
+            OnWeatherChangedEvent?.Invoke();
         }
 
         public void SequenceWeatherSwitch()
@@ -65,7 +67,8 @@ namespace AkaitoAi
 
             PlayerPrefs.SetInt(prefsName, switchIndex);
 
-            OnTimeOfDayAction?.Invoke(switchIndex);
+            OnWeatherChangedAction?.Invoke(switchIndex);
+            OnWeatherChangedEvent?.Invoke();
         }
 
         public void RandomWeatherSwitch()
@@ -79,7 +82,8 @@ namespace AkaitoAi
 
             PlayerPrefs.SetInt(prefsName, randomIndex);
 
-            OnTimeOfDayAction?.Invoke(randomIndex);
+            OnWeatherChangedAction?.Invoke(randomIndex);
+            OnWeatherChangedEvent?.Invoke();
         }
     }
 }
