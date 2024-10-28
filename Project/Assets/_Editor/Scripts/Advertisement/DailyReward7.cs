@@ -2,6 +2,7 @@
 using UnityEngine.Events;
 using UnityEngine.UI;
 using System;
+using System.Collections;
 
 namespace AkaitoAi.Advertisement
 {
@@ -12,17 +13,30 @@ namespace AkaitoAi.Advertisement
 
         [SerializeField] private int secondsToWait = SecondsInADay;
         [SerializeField] private Reward[] rewardButtons = new Reward[TotalDays];
-        [SerializeField] private Text displayText, grantedText;
+        [SerializeField] private Text displayText;
 
         [SerializeField] private bool allowBothClaimOptions = false; // Option to enable both claim modes
         private ulong lastRewarded;
         private float secondsLeft;
 
         [SerializeField] private GameObject dailyRewardPanel, rewardedAdBtn, claimNowBtn;
-        [SerializeField] private GameObject rewardGrantedPrefab;
         [SerializeField] private string coinPref = "TotalCoins";
 
-        [System.Serializable]
+        [SerializeField] private RewardGranted rewardGranted;
+
+        [Serializable]
+        public struct RewardGranted
+        {
+            public GameObject obj;
+
+            public Image image;
+            
+            public Text text;
+
+            public Sprite[] rewardSprites;
+        }
+
+        [Serializable]
         public struct Reward
         {
             public Button button;
@@ -97,7 +111,7 @@ namespace AkaitoAi.Advertisement
         {
             if (CanGetReward())
             {
-                SetDisplayText("Claim Today's Reward!");
+                SetDisplayText("Claim Now!");
                 rewardButtons[PlayerPrefs.GetInt("Day")].SetInteractable(true);
             }
             else
@@ -124,18 +138,35 @@ namespace AkaitoAi.Advertisement
 
         private void ShowRewardMessage(int day, int reward)
         {
-            if (grantedText == null)
+            if (rewardGranted.text == null)
             {
-                if (rewardGrantedPrefab.transform.GetChild(0).GetChild(0).TryGetComponent<Text>(out Text textComp))
+                if (rewardGranted.obj.transform.GetChild(0).GetChild(0).TryGetComponent<Text>(out Text textComp))
                 {
-                    textComp.text = $"YOU GOT REWARD {reward} COINS";
+                    textComp.text = $"YOU HAVE GOT {reward}$ COINS";
                 }
-                Instantiate(rewardGrantedPrefab);
+                Instantiate(rewardGranted.obj);
             }
-            else grantedText.text = $"YOU GOT REWARD {reward} COINS";
+            else
+            {
+                rewardGranted.obj.SetActive(true);
+                rewardGranted.text.text = $"YOU HAVE GOT {reward}$ COINS";
+                rewardGranted.image.sprite = rewardGranted.rewardSprites[day];
+                rewardGranted.image.SetNativeSize();
+
+                if (rewardGranted.obj.activeInHierarchy)
+                    StartCoroutine(DiableAfterDelay());
+
+            }
 
             //reward.ToString() + rewardType;
             //"YOU GOT YOUR DAY " + PlayerPrefs.GetInt("Day").ToString() + "  REWARD";
+
+            IEnumerator DiableAfterDelay()
+            {
+                yield return new WaitForSeconds(5f);
+
+                rewardGranted.obj.SetActive(false);
+            }
         }
 
         private void UpdatePlayerRewards(int day)
@@ -153,7 +184,7 @@ namespace AkaitoAi.Advertisement
             if (day >= TotalDays - 1)
             {
                 PlayerPrefs.SetInt("Day", 0);
-                ResetAllClaimDays();
+                //ResetAllClaimDays();
             }
             else PlayerPrefs.SetInt("Day", day + 1);
 
@@ -165,7 +196,7 @@ namespace AkaitoAi.Advertisement
         private void DisableButtonEffects()
         {
             int currentDay = PlayerPrefs.GetInt("Day");
-            
+
             for (int i = 0; i <= currentDay; i++)
             {
                 rewardButtons[i].SetInteractable(false);
@@ -173,6 +204,12 @@ namespace AkaitoAi.Advertisement
                 if (PlayerPrefs.GetInt("ClaimDay" + i) == 1)
                     rewardButtons[i].onClaimed?.Invoke(); // Trigger claimed effect
             }
+
+            //for (int day = 0; day < TotalDays; day++)
+            //{
+            //    if (PlayerPrefs.GetInt("ClaimDay" + day) == 1)
+            //        rewardButtons[day].onClaimed?.Invoke(); // Trigger claimed effect
+            //}
         }
 
         private bool CanGetReward()
@@ -196,7 +233,7 @@ namespace AkaitoAi.Advertisement
         private void ResetRewardUI()
         {
             rewardedAdBtn.SetActive(false);
-            
+
             if (PlayerPrefs.GetInt("Day") == 0)
                 ResetAllClaimDays();
         }
@@ -223,11 +260,11 @@ namespace AkaitoAi.Advertisement
         {
             AdsWrapper.GetInstance()
                 .ShowRewardedAds(Reward
-                , NoInternet
-                , NoAd);
+                , () => NoInternet()
+                , () => NoAD());
 
             void NoInternet() { }
-            void NoAd() { }
+            void NoAD() { }
 
             void Reward()
             {
