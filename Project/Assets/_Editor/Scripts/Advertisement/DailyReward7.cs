@@ -54,6 +54,12 @@ namespace AkaitoAi.Advertisement
         {
             foreach (var reward in rewardButtons)
                 reward.SetInteractable(false);
+
+            for (int day = 0; day < TotalDays; day++)
+            {
+                if (PlayerPrefs.GetInt("ClaimDay" + day) == 1)
+                    rewardButtons[day].onClaimed?.Invoke(); // Trigger claimed effect
+            }
         }
 
         private void AddButtonListeners()
@@ -161,7 +167,12 @@ namespace AkaitoAi.Advertisement
             int currentDay = PlayerPrefs.GetInt("Day");
             
             for (int i = 0; i <= currentDay; i++)
+            {
                 rewardButtons[i].SetInteractable(false);
+
+                if (PlayerPrefs.GetInt("ClaimDay" + i) == 1)
+                    rewardButtons[i].onClaimed?.Invoke(); // Trigger claimed effect
+            }
         }
 
         private bool CanGetReward()
