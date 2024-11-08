@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using System.Runtime.CompilerServices;
+//using System.Diagnostics;
 
 namespace AkaitoAi.Extensions
 {
@@ -858,6 +859,8 @@ namespace AkaitoAi.Extensions
             action?.Invoke();
         }
 
+        //StackTrace stackTrace = new StackTrace();
+        //Console.WriteLine(stackTrace.GetFrame(1).GetMethod().Name);
 
         public static bool TestChance(int chance, int chanceMax = 100)
         {
