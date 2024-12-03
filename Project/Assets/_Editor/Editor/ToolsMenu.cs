@@ -20,7 +20,7 @@ namespace AkaitoAi
 
 
         static int modelFoldersCount = -1;
-        [MenuItem("AkaitoAi/Tools/Create Model Folders")] 
+        [MenuItem("AkaitoAi/Setup/Create Model Folders")] 
         public static void CreateModelFolders()
         {
             modelFoldersCount++;
