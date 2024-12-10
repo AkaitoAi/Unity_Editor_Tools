@@ -35,6 +35,7 @@ namespace AkaitoAi
             DisableLogging();
             DisableVSync();
             DisableScreenTimeout();
+            AutoDetectGraphicSettings();
 
             Debug.Log("OnSceneLoaded: " + scene.name);
             Debug.Log(mode);
@@ -87,6 +88,37 @@ namespace AkaitoAi
             Screen.SetResolution(newWidth, newHeight, Screen.fullScreen);
 
             Debug.Log($"Resolution set to: {newWidth}x{newHeight} ({percentage * 100}%)");
+        }
+        private void AutoDetectGraphicSettings()
+        {
+            if (SystemMemorySize <= 3072)
+            {
+                AutoChangeQualitySetting(0);
+
+                return;
+            }
+
+            if (SystemMemorySize > 3072 && SystemMemorySize <= 4096)
+            {
+                AutoChangeQualitySetting(1);
+
+                return;
+            }
+
+            if (SystemMemorySize > 4096)
+            {
+                AutoChangeQualitySetting(2);
+
+                return;
+            }
+
+            void AutoChangeQualitySetting(int _qualityIndex)
+            {
+                PlayerPrefs.SetInt("QualitySetting", _qualityIndex);
+
+                QualitySettings.SetQualityLevel(_qualityIndex, true);
+                QualitySettings.GetQualityLevel();
+            }
         }
 
         //? Add in funtion to know from where the function us being called
