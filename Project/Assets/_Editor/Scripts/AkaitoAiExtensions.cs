@@ -6,6 +6,8 @@ using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using System.Runtime.CompilerServices;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 //using System.Diagnostics;
 
 namespace AkaitoAi.Extensions
@@ -695,6 +697,76 @@ namespace AkaitoAi.Extensions
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Assigns items from a source collection to a target collection, skipping a specified index and avoiding duplicates.
+        /// </summary>
+        /// <typeparam name="TSource">Type of the source collection items.</typeparam>
+        /// <typeparam name="TTarget">Type of the target collection items.</typeparam>
+        /// <param name="targetCollection">The collection to populate (e.g., spawn points).</param>
+        /// <param name="sourceCollection">The source collection to assign from (e.g., vehicles).</param>
+        /// <param name="setupAction">Action to execute for each assignment (e.g., position setup).</param>
+        /// <param name="skipIndex">Index in the source collection to skip.</param>
+        public static void AssignWithSkip<TSource, TTarget>(
+            this IList<TTarget> targetCollection,
+            IList<TSource> sourceCollection,
+            Action<TTarget, TSource> setupAction,
+            int skipIndex)
+        {
+            if (targetCollection == null || sourceCollection == null || setupAction == null)
+            {
+                Debug.LogError("AssignWithSkip: One or more parameters are null.");
+                return;
+            }
+
+            // Track assigned indices to avoid duplicates
+            HashSet<int> assignedIndices = new HashSet<int>();
+
+            // Add the skipped index initially to ensure it's not reused
+            assignedIndices.Add(skipIndex);
+
+            int sourceCount = sourceCollection.Count;
+            int targetCount = targetCollection.Count;
+            int sourceIndex = 0;
+
+            for (int targetIndex = 0; targetIndex < targetCount; targetIndex++)
+            {
+                // Skip already assigned indices
+                while (assignedIndices.Contains(sourceIndex))
+                {
+                    sourceIndex = (sourceIndex + 1) % sourceCount;
+                }
+
+                // Perform the assignment
+                setupAction(targetCollection[targetIndex], sourceCollection[sourceIndex]);
+                assignedIndices.Add(sourceIndex);
+
+                // Move to the next source item
+                sourceIndex = (sourceIndex + 1) % sourceCount;
+            }
+
+            // Example usage
+            //int currentVehicleIndex = GameManager.instance.gameData.currentCar;
+
+            //stuntLevels[GameManager.instance.currentLevel].playerSpawn
+            //    .AssignWithSkip(
+            //        vehicles,
+            //        (spawnPoint, vehicle) =>
+            //        {
+            //            RCC_CarControllerV3 carController = vehicle.car?.GetComponent<RCC_CarControllerV3>();
+            //            if (carController != null)
+            //            {
+            //                SetupRCC(spawnPoint, carController);
+            //            }
+            //            else
+            //            {
+            //                Debug.LogWarning("Vehicle is missing RCC_CarControllerV3 or car reference!");
+            //            }
+            //        },
+            //        currentVehicleIndex
+            //    );
+        }
+
         public static void MethodWithInternetReachability(Action method)
         {
             if (Application.internetReachability
@@ -2538,5 +2610,58 @@ namespace AkaitoAi.Extensions
             }
         }
         #endregion
+
+        #region BinarySerialization
+        public static void SaveAsBinary<T>(this T data, string filePath)
+        {
+            try
+            {
+                using (FileStream stream = new FileStream(filePath, FileMode.Create))
+                {
+                    BinaryFormatter formatter = new BinaryFormatter();
+                    formatter.Serialize(stream, data);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error saving data to {filePath}: {ex.Message}");
+            }
+        }
+
+        public static T LoadFromBinary<T>(this string filePath)
+        {
+            try
+            {
+                using (FileStream stream = new FileStream(filePath, FileMode.Open))
+                {
+                    BinaryFormatter formatter = new BinaryFormatter();
+                    return (T)formatter.Deserialize(stream);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error loading data from {filePath}: {ex.Message}");
+                return default(T);
+            }
+        }
     }
+
+    //    // Usage Example
+    //    [Serializable]
+    //    public class PlayerData
+    //    {
+    //    // ... your data properties
+    //}
+
+        //// ...
+
+        //PlayerData playerData = new PlayerData
+        //{
+            //    // ... initialize player data
+        //};
+
+        //playerData.SaveAsBinary("player_data.bin"); 
+
+        //PlayerData loadedData = "player_data.bin".LoadFromBinary<PlayerData>();
+    #endregion
 }
