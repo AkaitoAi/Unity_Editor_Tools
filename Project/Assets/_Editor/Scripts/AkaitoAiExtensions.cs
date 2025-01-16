@@ -767,6 +767,50 @@ namespace AkaitoAi.Extensions
             //    );
         }
 
+        /// <summary>
+        /// Checks if the given index is valid for the collection and not equal to the selection index.
+        /// </summary>
+        /// <typeparam name="T">The type of elements in the collection.</typeparam>
+        /// <param name="collection">The collection to validate against.</param>
+        /// <param name="index">The index to check.</param>
+        /// <param name="selectionIndex">The current selection index to compare.</param>
+        /// <returns>True if the index is valid and not the selection index; otherwise, false.</returns>
+        public static bool IsValidIndex<T>(this ICollection<T> collection, int index, int selectionIndex)
+        {
+            return index != selectionIndex && index >= 0 && index < collection.Count;
+
+        //    public List<GameObject> characters;
+        //private int selectionIndex = 0;
+
+        //public void SelectCharacter(int index)
+        //{
+        //    if (!characters.IsValidIndex(index, selectionIndex))
+        //        return;
+
+        //    // Proceed with selecting the character
+        //    selectionIndex = index;
+        //    Debug.Log($"Selected character: {characters[index].name}");
+        //}
+        }
+
+        /// <summary>
+        /// Checks if the given index is valid for the collection and not equal to the selection index.
+        /// Automatically wraps the index within the valid range.
+        /// </summary>
+        /// <typeparam name="T">The type of elements in the collection.</typeparam>
+        /// <param name="collection">The collection to validate against.</param>
+        /// <param name="index">The index to check, which will be wrapped to stay within bounds.</param>
+        /// <param name="selectionIndex">The current selection index to compare.</param>
+        /// <returns>True if the index is valid and not the selection index; otherwise, false.</returns>
+        public static bool IsValidIndexWithWrap<T>(this ICollection<T> collection, ref int index, int selectionIndex)
+        {
+            // Wrap the index to stay within the bounds of the collection
+            index = (index + collection.Count) % collection.Count;
+
+            // Check if the wrapped index is valid and not the same as the selection index
+            return index != selectionIndex && index >= 0 && index < collection.Count;
+        }
+
         public static void MethodWithInternetReachability(Action method)
         {
             if (Application.internetReachability
