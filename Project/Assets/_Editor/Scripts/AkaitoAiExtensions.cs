@@ -847,6 +847,28 @@ namespace AkaitoAi.Extensions
             else ad?.Invoke(reward, adNotAvailable);
         }
 
+        public static IEnumerator Countdown(float countdownTime, Action onComplete)
+        {
+            float currentTime = countdownTime;
+            while (currentTime > 0)
+            {
+                yield return new WaitForSeconds(1f);
+                currentTime--;
+            }
+            onComplete?.Invoke();
+        }
+
+        public static IEnumerator CountupCoroutine(float countupTime, Action onComplete)
+        {
+            float currentTime = 0;
+            while (currentTime < countupTime)
+            {
+                yield return new WaitForSeconds(1f);
+                currentTime++;
+            }
+            onComplete?.Invoke();
+        }
+
         public static float ConvertToPositiveFloat(float _value)
         {
             return _value < 0 ? _value * -1 : _value;
