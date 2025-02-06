@@ -383,6 +383,21 @@ namespace AkaitoAi.Extensions
         {
             return (cullingMask & (1 << gameObject.layer)) != 0;
         }
+
+        public static IEnumerator ChangeStateAfterDelayRealtime(this GameObject go, bool state, float delay)
+        {
+            go.SetActive(state);
+            yield return new WaitForSecondsRealtime(delay);
+            go.SetActive(!state);
+        }
+        public static IEnumerator ChangeStateAfterDelay(this GameObject go, bool state, float delay)
+        {
+            go.SetActive(state);
+            yield return new WaitForSeconds(delay);
+            go.SetActive(!state);
+        }
+
+
         #endregion
 
         #region List
