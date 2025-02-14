@@ -1,3 +1,4 @@
+using AkaitoAi.Extensions;
 using DG.Tweening;
 using System;
 using UnityEngine;
@@ -14,15 +15,23 @@ public class DriveableCar : MonoBehaviour, IDriveable
 
     [SerializeField] private Transform doorHandleIK;
 
+    [SerializeField] private GameObject enterExitCamera;
+
+    [SerializeField] private float doorRotateAroundAngle = 45f;
+
+    [SerializeField] private DoorOpenCloseSounds doorOpenCloseSounds;
+
     [SerializeField] private DriverIK driverIK;
 
-    private RCC_CarControllerV3 carController;
+    private RCC_SceneManager rccSceneManager;
+    private Vector3 leftDoorInitialEuler;
+    private Coroutine brakeCoroutine;
+    
+    internal RCC_CarControllerV3 carController;
 
     internal int driveableID;
 
-    internal bool isLeftDoorOpen;
-
-    public static event Action<int, Transform, 
+    public static event Action<int, Transform, Transform, 
         Transform, Transform, Transform> OnProvideIKAction;
 
     public static event Action<ControllerType> OnControllerChangedAction;
@@ -33,6 +42,23 @@ public class DriveableCar : MonoBehaviour, IDriveable
     public struct DriverIK
     { 
         public Transform leftHandIK, rightHandIK, leftFootIK, rightFootIK;
+    }
+
+    [Serializable]
+    public struct DoorOpenCloseSounds
+    {
+        public AudioClip openAudioClip;
+        public AudioClip closeAudioClip;
+        public AudioSource audioSource;
+
+        public void PlayAudioClip(AudioClip audioClip)
+        {
+            if(audioSource == null) return;
+
+            if(audioClip == null) return;
+
+            audioSource.PlayOneShot(audioClip);
+        }
     }
 
     public Transform Target
@@ -65,7 +91,15 @@ public class DriveableCar : MonoBehaviour, IDriveable
 
     private void Awake()
     {
-        carController = transform.root.GetComponent<RCC_CarControllerV3>();
+        rccSceneManager = RCC_SceneManager.Instance;
+        
+        carController = transform.root.GetComponent<RCC_CarControllerV3>(); 
+        carController.enabled = false;
+        
+        leftDoorInitialEuler = leftDoorTransform.localEulerAngles;
+
+        doorOpenCloseSounds.audioSource = AkaitoAiExtensions.GetOrAddComponent<AudioSource>(gameObject);
+        doorOpenCloseSounds.audioSource.playOnAwake = false;
     }
     private void SetupNavigationTarget(int id)
     { 
@@ -76,92 +110,156 @@ public class DriveableCar : MonoBehaviour, IDriveable
 
     public void EnterDriveable(Transform driver)
     {
+        if (brakeCoroutine != null) StopCoroutine(brakeCoroutine);
+
         if (driver.TryGetComponent(out Animator animator))
         {
-            animator.CrossFadeInFixedTime("EnteringCar", .5f);
-            animator.SetBool("SitDirect", true);
-        }
+            driver.DOMove(NavigateTo.destination.position, .25f).SetEase(Ease.Linear).
+                    OnPlay(() => {
 
-        leftDoorTransform.DOBlendableRotateBy(new Vector3(0, 45f, 0), 1f).SetDelay(.5f)
+                        driver.DORotate(NavigateTo.destination.eulerAngles, 1f).SetEase(Ease.Linear);
+                        
+                        OnControllerChangedAction?.Invoke(ControllerType.TPSDriveableBrain);
+                        enterExitCamera.SetActive(true);
+                        
+                        animator.CrossFadeInFixedTime("Idle", .5f);
+                    })
+                    .OnComplete(() => { 
+
+                        animator.CrossFadeInFixedTime("EnteringCar", .5f);
+
+                        OnProvideIKAction?.Invoke(driver.GetInstanceID(),
+                               null, doorHandleIK, null, null, null);
+                    });
+        }
+        
+        leftDoorTransform.DOKill();
+        leftDoorTransform.localEulerAngles = leftDoorInitialEuler;
+
+        leftDoorTransform.DOBlendableRotateBy(new Vector3(0, doorRotateAroundAngle, 0), 1f).SetDelay(.5f)
+            .OnPlay(() => {
+
+                doorOpenCloseSounds.PlayAudioClip(doorOpenCloseSounds.openAudioClip);
+            })
             .OnComplete( () =>
             {
                 if (driver.TryGetComponent(out Animator animator))
                 {
                     animator.CrossFadeInFixedTime("EnterCarSecondHalf", .5f);
 
-                    leftDoorTransform.DOBlendableRotateBy(new Vector3(0, -45f, 0), 1f);
 
-                    OnProvideIKAction?.Invoke(driver.GetInstanceID(),
-                    null, null, null, null);
+                    driver.DOMove(driverSeatTransform.position, .1f).SetEase(Ease.Linear).
+                    OnPlay(() => {
+                        driver.DORotate(driverSeatTransform.eulerAngles, .1f).SetEase(Ease.Linear);
+
+                        OnProvideIKAction?.Invoke(driver.GetInstanceID(),
+                            null, null, null, driverIK.leftFootIK, driverIK.rightFootIK);
+                    });
+
+                    leftDoorTransform.DOBlendableRotateBy(new Vector3(0, -doorRotateAroundAngle, 0), 1f).SetDelay(.25f).
+                    OnPlay(() => { 
+                    
+                        OnProvideIKAction?.Invoke(driver.GetInstanceID(),
+                            null, doorHandleIK, null, driverIK.leftFootIK, driverIK.rightFootIK);
+
+                        doorOpenCloseSounds.PlayAudioClip(doorOpenCloseSounds.closeAudioClip);
+
+                    }).OnComplete(() => {
+
+                        driver.transform.position = driverSeatTransform.position;
+                        driver.transform.rotation = driverSeatTransform.rotation;
+
+                        OnProvideIKAction?.Invoke(driver.GetInstanceID(), null,
+                        driverIK.leftHandIK, driverIK.rightHandIK,
+                        driverIK.leftFootIK, driverIK.rightFootIK);
+
+                        driver.SetParent(driverSeatTransform);
+
+                        enterExitCamera.SetActive(false);
+
+                        OnControllerChangedAction?.Invoke(ControllerType.RCC);
+
+
+                        rccSceneManager.activePlayerCamera.SetTarget(carController);
+                        rccSceneManager.activePlayerVehicle = carController;
+
+                        carController.enabled = true;
+                        carController.canControl = true;
+                        carController.StartEngine();
+                    });
                 }
-
-                //driver.transform.position = navigateToTarget.destination.position;
-                //driver.transform.rotation = navigateToTarget.destination.rotation;
-
-                //driver.DOMove(new Vector3( navigateToTarget.destination.position.x,
-                //    driver.position.y, navigateToTarget.destination.position.z), 1f).SetEase(Ease.Linear);
-
-                driver.DOMove(driverSeatTransform.position, 1f).SetEase(Ease.Linear).
-                OnPlay(() => {
-
-                    driver.DORotate(driverSeatTransform.eulerAngles, 1f).SetEase(Ease.Linear);
-                }).
-                        OnComplete(() => {
-                            
-                            driver.transform.position = driverSeatTransform.position;
-                            driver.transform.rotation = driverSeatTransform.rotation;
-
-                            OnProvideIKAction?.Invoke(driver.GetInstanceID(),
-                            driverIK.leftHandIK, driverIK.rightHandIK,
-                            driverIK.leftFootIK, driverIK.rightFootIK);
-
-                            driver.SetParent(driverSeatTransform);
-
-                            OnControllerChangedAction?.Invoke(ControllerType.RCC);
-
-
-                            carController.enabled = true;
-                            carController.StartEngine();
-                            carController.canControl = true;
-                        });
             });
     }
 
     public void ExitDriveable(Transform driver)
     {
+        brakeCoroutine = StartCoroutine(this.WaitWhile(carController.enabled, () => {
+            carController.brakeInput += 1f;
+        }));
+
         if (driver.TryGetComponent(out Animator animator))
         {
             animator.CrossFadeInFixedTime("Exiting Car", 1f);
 
-            OnProvideIKAction?.Invoke(driver.GetInstanceID(),
-                    null, null, null, null);
+            OnProvideIKAction?.Invoke(driver.GetInstanceID(), null,
+                        driverIK.leftHandIK, driverIK.rightHandIK,
+                        driverIK.leftFootIK, driverIK.rightFootIK);
+
+            OnControllerChangedAction?.Invoke(ControllerType.TPSDriveableBrain);
+            enterExitCamera.SetActive(true);
         }
 
-        leftDoorTransform.DOBlendableRotateBy(new Vector3(0, 45f, 0), 1f).SetDelay(.25f)
-            .OnComplete(() =>
+        leftDoorTransform.DOKill();
+        leftDoorTransform.localEulerAngles = leftDoorInitialEuler;
+
+        leftDoorTransform.DOBlendableRotateBy(new Vector3(0, doorRotateAroundAngle, 0), 1f).SetDelay(.25f)
+            .OnPlay(() =>
             {
-                driver.DOMove(navigateToTarget.destination.position, 1f)
+                doorOpenCloseSounds.PlayAudioClip(doorOpenCloseSounds.openAudioClip);
+
+                OnProvideIKAction?.Invoke(driver.GetInstanceID(), null,
+                    doorHandleIK, null, driverIK.leftFootIK, driverIK.rightFootIK);
+
+                StartCoroutine(AkaitoAiExtensions.SimpleDelay(1f, () => {
+                    
+                    OnProvideIKAction?.Invoke(driver.GetInstanceID(),
+                                null, doorHandleIK, null, null, null);
+
+                }));
+
+            }).OnComplete(() =>
+            {
+                OnProvideIKAction?.Invoke(driver.GetInstanceID(),
+                                null, null, null, null, null);
+
+                driver.DOMove(NavigateTo.destination.position, 1f)
                     .SetEase(Ease.Linear)
                     .OnComplete(() => {
 
-                        carController.enabled = false;
                         carController.KillEngine();
+                        carController.enabled = false;
                         carController.canControl = false;
+
+                        driver.transform.position = NavigateTo.destination.position;
 
                         if (driver.TryGetComponent(out Animator animator))
                         {
-                            //animator.CrossFadeInFixedTime("EnterCarSecondHalf", .5f);
+                            leftDoorTransform.DOBlendableRotateBy(new Vector3(0, -doorRotateAroundAngle, 0), 1f)
+                            .OnPlay(() => {
 
-                            leftDoorTransform.DOBlendableRotateBy(new Vector3(0, -45f, 0), 1f)
-                                .OnComplete(() => {
+                                doorOpenCloseSounds.PlayAudioClip(doorOpenCloseSounds.closeAudioClip);
+                            })
+                            .OnComplete(() => {
 
-                                    driver.parent = null;
+                                driver.parent = null;
 
-                                    OnControllerChangedAction?.Invoke(ControllerType.TPS);
+                                enterExitCamera.SetActive(false);
 
-                                    OnControllerActiveAction?.Invoke(driver);
+                                OnControllerChangedAction?.Invoke(ControllerType.TPS);
 
-                                });
+                                OnControllerActiveAction?.Invoke(driver);
+
+                            });
                         }
                     });
             });

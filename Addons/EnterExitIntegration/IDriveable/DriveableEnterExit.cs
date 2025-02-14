@@ -1,32 +1,59 @@
 using UnityEngine;
 using UnityEngine.UI;
-
+using AkaitoAi.Singleton;
+using Cinemachine;
+using System;
 
 public enum ControllerType 
 {
     None,
     TPS,
+    TPSDriveable,
+    TPSDriveableBrain,
     RCC,
 }
-public class DriveableEnterExit : MonoBehaviour
+public class DriveableEnterExit : Singleton<DriveableEnterExit>
 {
-    [SerializeField] private Button enterButton, exitButton;
+    [SerializeField] private ControllerType controller = ControllerType.TPS;
+
+    [SerializeField] private DriveableButtons driveableButtons;
 
     [SerializeField] private TPSCharacter tpsCharacter;
 
-    [SerializeField] private GameObject[] tpsControls, rccControls;
+    [SerializeField] private CameraCanvas cameraCanvas;
 
     internal int driveableInstanceID;
     internal Transform driveable;
     internal float distanceFromDriveable;
     internal Transform cloneCharacter;
 
-    [System.Serializable]
+    [Serializable]
+    public struct DriveableButtons
+    {
+        public Button enterButton;
+        public Button exitButton;
+    }
+
+    [Serializable]
     public struct TPSCharacter
     {
         public Transform tpsCharacterController;
         public Transform tpsGetToDriveableCharacter;
         public Transform tpsDriverCharacter;
+        public CinemachineBrain brainFollowCamera;
+        public CinemachineVirtualCamera vFollowCamera;
+    }
+
+    [Serializable]
+    public struct CameraCanvas
+    {
+        public GameObject[] tps;
+        public GameObject[] rcc;
+    }
+
+    private void Awake()
+    {
+        ChangeController(controller);
     }
 
     private void OnEnable()
@@ -47,14 +74,13 @@ public class DriveableEnterExit : MonoBehaviour
 
     private void DriveableFound(bool isFound)
     {
-        enterButton.gameObject.SetActive(isFound);
+        driveableButtons.enterButton.gameObject.SetActive(isFound);
 
-        if (!isFound) enterButton.onClick.RemoveAllListeners();
+        if (!isFound) driveableButtons.enterButton.onClick.RemoveAllListeners();
     }
 
     private void SetupEnterButton(int driveableID)
     {
-        //if (!driveable.TryGetComponent(out IDriveable drive)) return;
 
         if (driveable.GetComponentInChildren<IDriveable>() == null) return;
         IDriveable drive = driveable.GetComponentInChildren<IDriveable>();
@@ -63,7 +89,7 @@ public class DriveableEnterExit : MonoBehaviour
 
         if (driveableInstanceID != driveableID) return;
 
-        enterButton.onClick.AddListener(() =>
+        driveableButtons.enterButton.onClick.AddListener(() =>
         {
             if (cloneCharacter != null) Destroy(cloneCharacter.gameObject);
 
@@ -72,6 +98,8 @@ public class DriveableEnterExit : MonoBehaviour
                 tpsCharacter.tpsCharacterController.rotation);
 
             tpsCharacter.tpsCharacterController.gameObject.SetActive(false);
+
+            ChangeController(ControllerType.TPSDriveable);
 
             drive.NavigateTo.toMove = cloneCharacter;
             drive.NavigateTo.FindTheShortestPath();
@@ -82,11 +110,13 @@ public class DriveableEnterExit : MonoBehaviour
     {
         if (cloneCharacter == null) return;
 
-        exitButton.onClick.AddListener(() =>
+        driveableButtons.exitButton.onClick.AddListener(() =>
         {
             if (driveable.GetComponentInChildren<IDriveable>()
             is not DriveableCar car)
                 return;
+
+            car.carController.KillEngine();
 
             car.ExitDriveable(cloneCharacter);
         });
@@ -101,26 +131,36 @@ public class DriveableEnterExit : MonoBehaviour
 
         if(driveableInstanceID != car.DriveableInstanceID) return;
 
-        //if (cloneCharacter != null) Destroy(cloneCharacter.gameObject);
-
-        //cloneCharacter = Instantiate(tpsCharacter.tpsDriverCharacter);
-
         car.EnterDriveable(cloneCharacter);
     }
 
     private void ChangeController(ControllerType ct)
     {
-        foreach (GameObject tpsControl in tpsControls)
-            tpsControl.SetActive(false);
-
-        foreach (GameObject rccControl in rccControls)
-            rccControl.SetActive(false);
+        DisableAllCameraCanvas();
 
         if (ct == ControllerType.None) return;
 
+        if (ct == ControllerType.TPSDriveable)
+        {
+            tpsCharacter.vFollowCamera.Follow = cloneCharacter;
+            tpsCharacter.vFollowCamera.LookAt = cloneCharacter;
+
+            tpsCharacter.brainFollowCamera.gameObject.SetActive(true);
+            tpsCharacter.vFollowCamera.gameObject.SetActive(true);
+
+            return;
+        }
+
+        if (ct == ControllerType.TPSDriveableBrain)
+        {
+            tpsCharacter.brainFollowCamera.gameObject.SetActive(true);
+
+            return;
+        }
+
         if (ct == ControllerType.TPS)
         {
-            foreach (GameObject tpsControl in tpsControls)
+            foreach (GameObject tpsControl in cameraCanvas.tps)
                 tpsControl.SetActive(true);
 
             tpsCharacter.tpsCharacterController.gameObject.SetActive(true);
@@ -130,12 +170,24 @@ public class DriveableEnterExit : MonoBehaviour
 
         if (ct == ControllerType.RCC)
         {
-            foreach (GameObject rccControl in rccControls)
+            foreach (GameObject rccControl in cameraCanvas.rcc)
                 rccControl.SetActive(true);
 
             SetupExitButton();
 
             return;
         }
+    }
+
+    private void DisableAllCameraCanvas()
+    {
+        foreach (GameObject tpsControl in cameraCanvas.tps)
+            tpsControl.SetActive(false);
+
+        foreach (GameObject rccControl in cameraCanvas.rcc)
+            rccControl.SetActive(false);
+
+        tpsCharacter.brainFollowCamera.gameObject.SetActive(false);
+        tpsCharacter.vFollowCamera.gameObject.SetActive(false);
     }
 }

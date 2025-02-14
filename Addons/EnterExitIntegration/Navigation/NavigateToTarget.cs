@@ -8,7 +8,6 @@ public class NavigateToTarget : MonoBehaviour
     [SerializeField] private Transform[] nodes;
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private Transform finalRotationAtDestination;
-    [SerializeField] private float finalRotationSpeed = 10f;
 
     internal Transform toMove;
     internal Transform destination;
@@ -17,7 +16,6 @@ public class NavigateToTarget : MonoBehaviour
     private int pathIndex = 0;
     private Transform closestNode;
     private List<Transform> shortestPath = new List<Transform>();
-    private Coroutine RotateTowardCoroutine;
 
     public static event Action OnFindShortestPathAction;
     public static event Action OnDestinationReachedAction;
@@ -35,8 +33,7 @@ public class NavigateToTarget : MonoBehaviour
         int closestIndex = 0;
         for (int i = 0; i < nodes.Length; i++)
         {
-            if (Vector3.Distance(toMove.position, nodes[i].position) <
-                Vector3.Distance(toMove.position, closestNode.position))
+            if (Vector3.Distance(toMove.position, nodes[i].position) < Vector3.Distance(toMove.position, closestNode.position))
             {
                 closestNode = nodes[i];
                 closestIndex = i;
@@ -44,12 +41,10 @@ public class NavigateToTarget : MonoBehaviour
         }
 
         float forwardDistance = 0f;
-
         for (int i = closestIndex; i < nodes.Length - 1; i++)
         {
             forwardDistance += Vector3.Distance(nodes[i].position, nodes[i + 1].position);
         }
-
         forwardDistance += Vector3.Distance(nodes[nodes.Length - 1].position, destination.position);
 
         float backwardDistance = 0f;
@@ -57,11 +52,9 @@ public class NavigateToTarget : MonoBehaviour
         {
             backwardDistance += Vector3.Distance(nodes[i].position, nodes[i - 1].position);
         }
-
         backwardDistance += Vector3.Distance(nodes[0].position, destination.position);
 
         shortestPath.Clear();
-
         if (forwardDistance < backwardDistance)
         {
             for (int i = closestIndex; i < nodes.Length; i++)
@@ -88,7 +81,6 @@ public class NavigateToTarget : MonoBehaviour
         if (pathIndex < shortestPath.Count)
         {
             Transform currentTarget = shortestPath[pathIndex];
-
             Vector3 targetPos = new Vector3(currentTarget.position.x, toMove.position.y, currentTarget.position.z);
 
             if (Vector3.Distance(toMove.position, targetPos) < 0.2f)
@@ -103,7 +95,6 @@ public class NavigateToTarget : MonoBehaviour
         else
         {
             MoveTowardsTarget(destination);
-
             if (Vector3.Distance(toMove.position, new Vector3(destination.position.x, toMove.position.y, destination.position.z)) < 0.05f)
             {
                 FinalizeMovement();
@@ -115,7 +106,8 @@ public class NavigateToTarget : MonoBehaviour
     {
         Vector3 targetPos = new Vector3(target.position.x, toMove.position.y, target.position.z);
         Quaternion lookRotation = Quaternion.LookRotation(targetPos - toMove.position);
-        toMove.rotation = Quaternion.RotateTowards(toMove.rotation, lookRotation, moveSpeed * 10 * Time.deltaTime);
+        float rotationSpeed = Mathf.Clamp(moveSpeed * 0.5f, 2f, 15f);
+        toMove.rotation = Quaternion.Slerp(toMove.rotation, lookRotation, rotationSpeed * Time.deltaTime);
         toMove.position = Vector3.MoveTowards(toMove.position, targetPos, moveSpeed * Time.deltaTime);
     }
 
@@ -125,26 +117,10 @@ public class NavigateToTarget : MonoBehaviour
         startMoving = false;
         pathIndex = 0;
 
-        if (RotateTowardCoroutine != null)
-            StopCoroutine(RotateTowardCoroutine);
-        RotateTowardCoroutine = StartCoroutine(RotateTowardDestination());
-    }
-
-    IEnumerator RotateTowardDestination()
-    {
-        if (toMove == null || finalRotationAtDestination == null) yield break;
-
-        Quaternion targetRotation = Quaternion.LookRotation(
-            new Vector3(finalRotationAtDestination.position.x, toMove.position.y, finalRotationAtDestination.position.z) - toMove.position
-        );
-
-        while (Quaternion.Angle(toMove.rotation, targetRotation) > 0.1f)
+        if (toMove != null && finalRotationAtDestination != null)
         {
-            toMove.rotation = Quaternion.RotateTowards(toMove.rotation, targetRotation, finalRotationSpeed * Time.deltaTime);
-            yield return null;
+            toMove.rotation = finalRotationAtDestination.rotation; // Instantly set rotation
         }
-        
-        StopCoroutine(RotateTowardCoroutine);
 
         OnDestinationReachedAction?.Invoke();
     }

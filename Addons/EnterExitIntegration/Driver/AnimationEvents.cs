@@ -3,43 +3,29 @@ using UnityEngine;
 
 public class AnimationEvents : MonoBehaviour
 {
-    [SerializeField] private Animator animator;
-    [SerializeField] private bool isCivilian;
+    [SerializeField] private FootStepSound footStepSound;
 
-    private Vector3 startPosition, startRotation;
-
-    public static event Action OnDoorOpenAction;
-
-    private void Awake()
+    [Serializable]
+    public struct FootStepSound
     {
-        startPosition = transform.position;
-        startRotation = transform.rotation.eulerAngles;
-    }
+        public AudioClip[] audioClips;
+        public AudioSource audioSource;
 
-    public void DoorOpen()
+        public void PlayAudioClip()
+        {
+            if (audioSource == null) return;
+
+            if (audioClips == null || 
+                audioClips.Length <= 0) return;
+
+            AudioClip audioClip = audioClips[UnityEngine.Random.Range(0, audioClips.Length)];
+            audioSource.pitch += UnityEngine.Random.Range(-.05f, .05f);
+
+            audioSource.PlayOneShot(audioClip);
+        }
+    }
+    public void OnFootStepSound()
     { 
-        if(animator == null) return;
-
-        animator.CrossFadeInFixedTime("OpenDoor", .2f);
-
-        OnDoorOpenAction?.Invoke();
+        footStepSound.PlayAudioClip();
     }
-
-    public void ActivateDriver()
-    { 
-        if(animator == null) return;
-
-        animator.SetBool("SitDirect", false);
-    }
-
-    private void OnEnable()
-    {
-        NavigateToTarget.OnDestinationReachedAction += DoorOpen;
-    }
-
-    private void OnDisable()
-    {
-        NavigateToTarget.OnDestinationReachedAction -= DoorOpen;
-    }
-
 }

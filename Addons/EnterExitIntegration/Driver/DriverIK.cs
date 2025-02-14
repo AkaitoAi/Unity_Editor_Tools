@@ -1,17 +1,19 @@
+using System;
 using UnityEngine;
 
 public class DriverIK : MonoBehaviour
 {
     [SerializeField] private Animator animator;
-    [SerializeField] private Transform walkableCharacter;
-    public DriverIKType driverIKType = DriverIKType.None;
+    public AnimatorIKType animatorIKType = AnimatorIKType.None;
 
-    internal Transform leftHandIK, rightHandIK, leftFootIK, rightFootIK;
+    internal Transform leftHandIK, rightHandIK, 
+        leftFootIK, rightFootIK, lookAtIK;
     
-    [System.Serializable]
-    public enum DriverIKType
+    [Serializable]
+    public enum AnimatorIKType
     {
         None,
+        JustLook,
         JustHands,
         JustLegs,
         All
@@ -23,66 +25,100 @@ public class DriverIK : MonoBehaviour
 
         if (!animator.enabled) return;
 
-        if (driverIKType == DriverIKType.None) return;
+        if (animatorIKType == AnimatorIKType.None) return;
 
-        if (driverIKType == DriverIKType.JustLegs)
+        if (animatorIKType == AnimatorIKType.JustLook)
         {
-            if (leftFootIK) AnimatorIK(AvatarIKGoal.LeftFoot, leftFootIK);
-
-            if (rightFootIK) AnimatorIK(AvatarIKGoal.RightFoot, rightFootIK);
+            AnimatorLookIK(lookAtIK);
 
             return;
         }
 
-        if (driverIKType == DriverIKType.JustHands)
+        if (animatorIKType == AnimatorIKType.JustLegs)
         {
-            if (leftHandIK) AnimatorIK(AvatarIKGoal.LeftHand, leftHandIK);
+            AnimatorIK(AvatarIKGoal.LeftFoot, leftFootIK);
 
-            if (rightHandIK) AnimatorIK(AvatarIKGoal.RightHand, rightHandIK);
+            AnimatorIK(AvatarIKGoal.RightFoot, rightFootIK);
 
             return;
         }
 
-        if (driverIKType == DriverIKType.All)
+        if (animatorIKType == AnimatorIKType.JustHands)
         {
-            if (leftFootIK) AnimatorIK(AvatarIKGoal.LeftFoot, leftFootIK);
+            AnimatorIK(AvatarIKGoal.LeftHand, leftHandIK);
 
-            if (rightFootIK) AnimatorIK(AvatarIKGoal.RightFoot, rightFootIK);
-
-            if (leftHandIK) AnimatorIK(AvatarIKGoal.LeftHand, leftHandIK);
-
-            if (rightHandIK) AnimatorIK(AvatarIKGoal.RightHand, rightHandIK);
+            AnimatorIK(AvatarIKGoal.RightHand, rightHandIK);
 
             return;
+        }
+
+        if (animatorIKType == AnimatorIKType.All)
+        {
+            AnimatorLookIK(lookAtIK);
+
+            AnimatorIK(AvatarIKGoal.LeftFoot, leftFootIK);
+
+            AnimatorIK(AvatarIKGoal.RightFoot, rightFootIK);
+
+            AnimatorIK(AvatarIKGoal.LeftHand, leftHandIK);
+
+            AnimatorIK(AvatarIKGoal.RightHand, rightHandIK);
+
+            return;
+        }
+
+        void AnimatorLookIK(Transform lookAt)
+        {
+            if (lookAt == null)
+            {
+                animator.SetLookAtWeight(0);
+
+                return;
+            }
+
+            animator.SetLookAtWeight(1);
+            animator.SetLookAtPosition(lookAt.position);
         }
 
         void AnimatorIK(AvatarIKGoal ikGoal, Transform ikTransform)
         {
+            if (ikTransform == null) 
+            {
+                animator.SetIKPositionWeight(ikGoal, 0);
+                animator.SetIKRotationWeight(ikGoal, 0);
+
+                return; 
+            }
+
             animator.SetIKPositionWeight(ikGoal, 1);
             animator.SetIKRotationWeight(ikGoal, 1);
             animator.SetIKPosition(ikGoal, ikTransform.position);
             animator.SetIKRotation(ikGoal, ikTransform.rotation);
         }
     }
-    private void ProvideIK(int instanceID,Transform leftHand = null, 
+    private void ProvideIK(int instanceID, Transform lookAt, Transform leftHand = null,
         Transform rightHand = null, Transform leftFoot = null, 
         Transform rightFoot = null)
     {
         if (transform.GetInstanceID() != instanceID) return;
 
-        if (leftHand != null && rightHand != null)
-            driverIKType = DriverIKType.JustHands;
+        if (lookAt != null)
+            animatorIKType = AnimatorIKType.JustLook;
 
-        if (leftFoot != null && rightFoot != null)
-            driverIKType = DriverIKType.JustLegs;
+        if (leftHand != null || rightHand != null)
+            animatorIKType = AnimatorIKType.JustHands;
 
-        if (leftHand == null && rightHand == null
-            && leftFoot == null && rightFoot == null)
+        if (leftFoot != null || rightFoot != null)
+            animatorIKType = AnimatorIKType.JustLegs;
+
+        if (leftHand == null || rightHand == null
+            && leftFoot == null || rightFoot == null)
         {
-            driverIKType = DriverIKType.None;
+            animatorIKType = AnimatorIKType.None;
         }
-        else driverIKType = DriverIKType.All;
+        else animatorIKType = AnimatorIKType.All;
 
+        lookAtIK = lookAt;
         leftHandIK = leftHand;
         rightHandIK = rightHand;
         leftFootIK = leftFoot;
