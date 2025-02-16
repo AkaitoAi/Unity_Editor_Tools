@@ -847,7 +847,7 @@ namespace AkaitoAi.Extensions
             else ad?.Invoke(reward, adNotAvailable);
         }
 
-        public static IEnumerator Countdown(float countdownTime, Action onComplete)
+        public static IEnumerator Countdown(this MonoBehaviour mono, float countdownTime, Action onComplete)
         {
             float currentTime = countdownTime;
             while (currentTime > 0)
@@ -858,7 +858,7 @@ namespace AkaitoAi.Extensions
             onComplete?.Invoke();
         }
 
-        public static IEnumerator CountupCoroutine(float countupTime, Action onComplete)
+        public static IEnumerator CountupCoroutine(this MonoBehaviour mono, float countupTime, Action onComplete)
         {
             float currentTime = 0;
             while (currentTime < countupTime)
@@ -1076,7 +1076,7 @@ namespace AkaitoAi.Extensions
         #endregion
 
         #region Lerp
-        public static IEnumerator LerpTo(float from, float to, float duration)
+        public static IEnumerator LerpTo(this MonoBehaviour mono ,float from, float to, float duration)
         {
             float counter = 0;
             while (counter < duration)
@@ -1089,7 +1089,7 @@ namespace AkaitoAi.Extensions
             from = to;
         }
 
-        public static IEnumerator LerpFrom(float to, float from, float duration)
+        public static IEnumerator LerpFrom(this MonoBehaviour mono, float to, float from, float duration)
         {
             float counter = 0;
             while (counter < duration)
@@ -1102,7 +1102,7 @@ namespace AkaitoAi.Extensions
             to = from;
         }
 
-        public static IEnumerator LerpToPingPong(float from, float to, float duration)
+        public static IEnumerator LerpToPingPong(this MonoBehaviour mono, float from, float to, float duration)
         {
             float counter = 0;
             while (counter < duration)
