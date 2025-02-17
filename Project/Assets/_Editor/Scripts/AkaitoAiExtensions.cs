@@ -940,6 +940,17 @@ namespace AkaitoAi.Extensions
             return save.Split(new string[] { separator }, System.StringSplitOptions.None);
         }
 
+        /// <summary>
+        /// Toggles the boolean value.
+        /// </summary>
+        /// <param name="value">The boolean variable to toggle.</param>
+        /// <returns>The toggled boolean value.</returns>
+        public static bool Toggle(this ref bool value)
+        {
+            value = !value;
+            return value;
+        }
+
         public static void DebugDrawRectangle(Vector3 minXY, Vector3 maxXY, Color color, float duration)
         {
             Debug.DrawLine(new Vector3(minXY.x, minXY.y), new Vector3(maxXY.x, minXY.y), color, duration);
