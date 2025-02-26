@@ -1086,6 +1086,35 @@ namespace AkaitoAi.Extensions
 
         #endregion
 
+        #region IEnumerator
+
+        public static IEnumerator WaitForAnimation(this MonoBehaviour mono, Animator animator, string animationName, int layer = 0, Action onComplete = null)
+        {
+            while (!animator.GetCurrentAnimatorStateInfo(layer).IsName(animationName))
+                yield return null;
+            while (animator.GetCurrentAnimatorStateInfo(layer).normalizedTime < 1.0f)
+                yield return null;
+            onComplete?.Invoke();
+        }
+
+        public static IEnumerator WaitForAudio(this MonoBehaviour mono, AudioSource audioSource, Action onComplete, float timeout = 10f)
+        {
+            float timer = 0f;
+            while (!audioSource.isPlaying && timer < timeout)
+            {
+                timer += Time.deltaTime;
+                yield return null;
+            }
+            while (audioSource.isPlaying && timer < timeout)
+            {
+                timer += Time.deltaTime;
+                yield return null;
+            }
+            onComplete?.Invoke();
+        }
+
+        #endregion
+
         #region Lerp
         public static IEnumerator LerpTo(this MonoBehaviour mono ,float from, float to, float duration)
         {
