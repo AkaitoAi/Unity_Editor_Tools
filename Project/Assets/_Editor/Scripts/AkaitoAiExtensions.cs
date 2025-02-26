@@ -1138,6 +1138,15 @@ namespace AkaitoAi.Extensions
             onComplete?.Invoke();
         }
 
+        public static IEnumerator WaitForAnimation(this MonoBehaviour mono, Animator animator, int animationHash, Action onComplete, int layer = 0)
+        {
+            while (animator.GetCurrentAnimatorStateInfo(layer).fullPathHash != animationHash)
+                yield return null;
+            while (animator.GetCurrentAnimatorStateInfo(layer).normalizedTime < 1.0f)
+                yield return null;
+            onComplete?.Invoke();
+        }
+
         public static IEnumerator WaitForAudio(this MonoBehaviour mono, AudioSource audioSource, Action onComplete, float timeout = 10f)
         {
             float timer = 0f;
