@@ -1316,7 +1316,7 @@ namespace AkaitoAi.Extensions
             }
             onComplete?.Invoke();
         }
-        public static IEnumerator Countdown(float duration, System.Action<float> onTick = null, System.Action onComplete = null)
+        public static IEnumerator Countdown(this MonoBehaviour mono, float duration, System.Action<float> onTick = null, System.Action onComplete = null)
         {
             float remainingTime = duration;
 
@@ -1337,7 +1337,7 @@ namespace AkaitoAi.Extensions
             //));
         }
 
-        public static IEnumerator Countup(float duration, System.Action<float> onTick = null, System.Action onComplete = null)
+        public static IEnumerator Countup(this MonoBehaviour mono, float duration, System.Action<float> onTick = null, System.Action onComplete = null)
         {
             float elapsedTime = 0f;
 
