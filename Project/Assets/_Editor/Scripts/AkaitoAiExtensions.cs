@@ -1087,14 +1087,13 @@ namespace AkaitoAi.Extensions
         #endregion
 
         #region IEnumerator
-
-        public static IEnumerator SimpleDelay(this MonoBehaviour mono,float delay, Action action)
+        public static IEnumerator SimpleDelay(float delay, Action action)
         {
             yield return new WaitForSeconds(delay);
 
             action?.Invoke();
         }
-        public static IEnumerator SimpleRealtimeDelay(this MonoBehaviour mono, float delay, Action action)
+        public static IEnumerator SimpleRealtimeDelay(float delay, Action action)
         {
             yield return new WaitForSecondsRealtime(delay);
 
@@ -1259,6 +1258,49 @@ namespace AkaitoAi.Extensions
             }
         }
 
+        public static IEnumerator WaitForAnimationWithDebug(this MonoBehaviour mono, Animator animator, int animationHash, float clipLength, Action onComplete, int layer = 0, float timeout = 10f)
+        {
+            float elapsedTime = 0f;
+            bool animationDetected = false;
+            float timeWaitedAfterStart = 0f;
+
+            Debug.Log($"Expected animation hash: {animationHash}, waiting for {clipLength}s duration");
+
+            while (elapsedTime < timeout)
+            {
+                AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(layer);
+                bool isInTransition = animator.IsInTransition(layer);
+
+                Debug.Log($"Layer {layer} - Hash: {stateInfo.fullPathHash}, NormalizedTime: {stateInfo.normalizedTime:F2}, InTransition: {isInTransition}, Elapsed: {elapsedTime:F2}s");
+
+                if (!animationDetected && stateInfo.fullPathHash == animationHash)
+                {
+                    Debug.Log($"Animation {animationHash} detected on layer {layer}");
+                    animationDetected = true;
+                }
+
+                if (animationDetected && stateInfo.fullPathHash == animationHash)
+                {
+                    timeWaitedAfterStart += Time.deltaTime;
+                    if (timeWaitedAfterStart >= clipLength && !isInTransition)
+                    {
+                        Debug.Log($"Animation {animationHash} completed after {timeWaitedAfterStart:F2}s");
+                        onComplete?.Invoke();
+                        yield break;
+                    }
+                }
+                else if (animationDetected && stateInfo.fullPathHash != animationHash)
+                {
+                    Debug.LogWarning($"Animation changed to hash {stateInfo.fullPathHash} before completion");
+                    yield break;
+                }
+
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+
+            Debug.LogError($"Timeout after {timeout}s waiting for animation {animationHash}");
+        }
         public static IEnumerator WaitForAudio(this MonoBehaviour mono, AudioSource audioSource, Action onComplete, float timeout = 10f)
         {
             float timer = 0f;
@@ -1272,6 +1314,41 @@ namespace AkaitoAi.Extensions
                 timer += Time.deltaTime;
                 yield return null;
             }
+            onComplete?.Invoke();
+        }
+        public static IEnumerator Countdown(float duration, System.Action<float> onTick = null, System.Action onComplete = null)
+        {
+            float remainingTime = duration;
+
+            while (remainingTime > 0)
+            {
+                onTick?.Invoke(remainingTime);
+                remainingTime -= Time.deltaTime;
+                yield return null;
+            }
+
+            onTick?.Invoke(0f);
+            onComplete?.Invoke();
+
+            //    StartCoroutine(CountdownUtility.Countdown(
+            //    5f, // 5 seconds
+            //    (timeLeft) => Debug.Log($"Time remaining: {timeLeft:F1} seconds"),
+            //    () => Debug.Log("Countdown finished!")
+            //));
+        }
+
+        public static IEnumerator Countup(float duration, System.Action<float> onTick = null, System.Action onComplete = null)
+        {
+            float elapsedTime = 0f;
+
+            while (elapsedTime < duration)
+            {
+                onTick?.Invoke(elapsedTime);
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+
+            onTick?.Invoke(duration);
             onComplete?.Invoke();
         }
 
