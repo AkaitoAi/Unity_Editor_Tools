@@ -1088,6 +1088,47 @@ namespace AkaitoAi.Extensions
 
         #region IEnumerator
 
+        public static IEnumerator SimpleDelay(this MonoBehaviour mono,float delay, Action action)
+        {
+            yield return new WaitForSeconds(delay);
+
+            action?.Invoke();
+        }
+        public static IEnumerator SimpleRealtimeDelay(this MonoBehaviour mono, float delay, Action action)
+        {
+            yield return new WaitForSecondsRealtime(delay);
+
+            action?.Invoke();
+        }
+
+        public static IEnumerator WaitWhile(this MonoBehaviour mono,
+            System.Func<bool> condition,
+            Action preAction = null, Action postAction = null)
+        {
+            while (condition())
+            {
+                preAction?.Invoke();
+
+                yield return null; // Waits until the next frame
+            }
+
+            postAction?.Invoke();
+        }
+
+        public static IEnumerator WaitWhile(this MonoBehaviour mono,
+            bool condition,
+            Action preAction = null, Action postAction = null)
+        {
+            while (condition)
+            {
+                preAction?.Invoke();
+
+                yield return null; // Waits until the next frame
+            }
+
+            postAction?.Invoke();
+        }
+
         public static IEnumerator WaitForAnimation(this MonoBehaviour mono, Animator animator, string animationName, int layer = 0, Action onComplete = null)
         {
             while (!animator.GetCurrentAnimatorStateInfo(layer).IsName(animationName))
