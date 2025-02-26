@@ -1146,6 +1146,118 @@ namespace AkaitoAi.Extensions
                 yield return null;
             onComplete?.Invoke();
         }
+        public static IEnumerator WaitForAnimation(this MonoBehaviour mono, Animator animator, int animationHash, Action onComplete)
+        {
+            while (animator.GetCurrentAnimatorStateInfo(0).fullPathHash != animationHash)
+                yield return null;
+            while (animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1.0f)
+                yield return null;
+            onComplete?.Invoke();
+        }
+
+        public static IEnumerator WaitForAnimation(this MonoBehaviour mono, Animator animator, int animationHash, Action onComplete, int layer = 0, float timeout = 10f)
+        {
+            float elapsedTime = 0f;
+
+            AnimatorStateInfo initialState = animator.GetCurrentAnimatorStateInfo(layer);
+
+            while (animator.GetCurrentAnimatorStateInfo(layer).fullPathHash != animationHash)
+            {
+                elapsedTime += Time.deltaTime;
+                if (elapsedTime > timeout)
+                {
+                    Debug.LogError($"Timeout waiting for animation hash {animationHash} to start");
+                    yield break;
+                }
+
+                if (animator.IsInTransition(layer))
+                {
+                    Debug.Log("Animator is in transition...");
+                }
+
+                yield return null;
+            }
+
+            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(layer);
+            while (stateInfo.fullPathHash == animationHash && stateInfo.normalizedTime < 1.0f)
+            {
+                elapsedTime += Time.deltaTime;
+                if (elapsedTime > timeout)
+                    yield break;
+
+                stateInfo = animator.GetCurrentAnimatorStateInfo(layer);
+                yield return null;
+            }
+
+            onComplete?.Invoke();
+        }
+
+        public static IEnumerator WaitForAnimationWithDebug(this MonoBehaviour mono, Animator animator, int animationHash, Action onComplete, int layer = 0, float timeout = 10f)
+        {
+            float elapsedTime = 0f;
+
+            while (true)
+            {
+                AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(layer);
+
+                if (animator.IsInTransition(layer))
+                {
+                    Debug.Log("Animator is in transition...");
+                    AnimatorTransitionInfo transitionInfo = animator.GetAnimatorTransitionInfo(layer);
+                    Debug.Log($"Transition normalized time: {transitionInfo.normalizedTime}");
+                }
+                else if (stateInfo.fullPathHash == animationHash)
+                {
+                    Debug.Log($"Target animation {animationHash} started");
+                    break;
+                }
+
+                elapsedTime += Time.deltaTime;
+                if (elapsedTime > timeout)
+                {
+                    Debug.LogError($"Timeout waiting for animation {animationHash} to start");
+                    yield break;
+                }
+                yield return null;
+            }
+
+            // Wait for animation completion
+            elapsedTime = 0f;
+            while (true)
+            {
+                AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(layer);
+
+                if (animator.IsInTransition(layer))
+                {
+                    Debug.Log("Transition detected during animation playback");
+                }
+
+                // Check if we're still on the target animation and it hasn't completed
+                if (stateInfo.fullPathHash == animationHash && stateInfo.normalizedTime < 1.0f)
+                {
+                    Debug.Log($"Animation progress: {stateInfo.normalizedTime}");
+                }
+                else if (stateInfo.fullPathHash == animationHash && stateInfo.normalizedTime >= 1.0f)
+                {
+                    Debug.Log($"Animation {animationHash} completed");
+                    onComplete?.Invoke();
+                    yield break;
+                }
+                else
+                {
+                    Debug.LogWarning($"Animation changed unexpectedly. Current hash: {stateInfo.fullPathHash}");
+                    yield break;
+                }
+
+                elapsedTime += Time.deltaTime;
+                if (elapsedTime > timeout)
+                {
+                    Debug.LogError($"Timeout waiting for animation {animationHash} to complete");
+                    yield break;
+                }
+                yield return null;
+            }
+        }
 
         public static IEnumerator WaitForAudio(this MonoBehaviour mono, AudioSource audioSource, Action onComplete, float timeout = 10f)
         {
