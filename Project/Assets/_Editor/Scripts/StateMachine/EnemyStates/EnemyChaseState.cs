@@ -6,10 +6,10 @@ namespace Platformer {
         readonly NavMeshAgent agent;
         readonly Transform player;
         
-        public EnemyChaseState(Enemy enemy, Animator animator, NavMeshAgent agent, Transform player) : base(enemy, animator) {
-            this.agent = agent;
-            this.player = player;
-        }
+        //public EnemyChaseState(Enemy enemy, Animator animator, NavMeshAgent agent, Transform player) : base(enemy, animator) {
+        //    this.agent = agent;
+        //    this.player = player;
+        //}
         
         public override void OnEnter() {
             Debug.Log("Chase");

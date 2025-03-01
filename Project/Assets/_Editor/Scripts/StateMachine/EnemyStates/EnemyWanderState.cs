@@ -7,11 +7,11 @@ namespace Platformer {
         readonly Vector3 startPoint;
         readonly float wanderRadius;
 
-        public EnemyWanderState(Enemy enemy, Animator animator, NavMeshAgent agent, float wanderRadius) : base(enemy, animator) {
-            this.agent = agent;
-            this.startPoint = enemy.transform.position;
-            this.wanderRadius = wanderRadius;
-        }
+        //public EnemyWanderState(Enemy enemy, Animator animator, NavMeshAgent agent, float wanderRadius) : base(enemy, animator) {
+        //    this.agent = agent;
+        //    this.startPoint = enemy.transform.position;
+        //    this.wanderRadius = wanderRadius;
+        //}
         
         public override void OnEnter() {
             Debug.Log("Wander");
