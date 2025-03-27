@@ -8,11 +8,25 @@ namespace AkaitoAi.Advertisement
 {
     public class AdsWrapper : SingletonPresistent<AdsWrapper>
     {
-        [SerializeField] private GameObject loadingCanvas, loadingPanel, loadingTextPanel, loadingCountPanel;
-        [SerializeField] private Text loadingCountText;
+        [SerializeField] private GameObject loadingCanvas, loadingPanel, loadingTextPanel;
+        [Space]
 
+        [Header("Loading Count")]
+        [SerializeField] private GameObject loadingCountPanel;
+        [SerializeField] private Text loadingCountText;
         [SerializeField] private float countdownTime = 3;
+        [Space]
+
+        [Header("Filler Loading")]
+        [SerializeField] private GameObject fillerLoadingPanel;
+        [SerializeField] private Image fillerImage;
+        [SerializeField] private Text fillerProgressText;
+        [SerializeField] private float fillerLoadingTotalDuration = 2f;
+        [SerializeField] private float fillerLoadingAdTriggerFraction = 0.75f;
+        [Space]
+
         private float currentTime;
+
 
         #region Ads Calling
 
@@ -136,6 +150,48 @@ namespace AkaitoAi.Advertisement
                 loadingCanvas.SetActive(false);
                 loadingCountPanel.SetActive(false);
 
+                Behaviour?.Invoke();
+            }
+        }
+        public void ShowInterstitialWithFiller(Action Behaviour = null)
+        {
+            Behaviour?.Invoke();
+
+            return;
+
+            InternetReachability(() => StartCoroutine(LoadInterstital()), () => Behaviour?.Invoke());
+
+            IEnumerator LoadInterstital()
+            {
+                loadingCanvas.SetActive(true);
+                fillerLoadingPanel.SetActive(true);
+
+                fillerProgressText.text = "0%";
+                fillerImage.fillAmount = 0f;
+
+                float adTriggerTime = fillerLoadingTotalDuration * fillerLoadingAdTriggerFraction;
+                float counterTime = 0f;
+
+                while (counterTime <= fillerLoadingTotalDuration)
+                {
+                    counterTime += Time.deltaTime;
+                    float progress = Mathf.Clamp01(counterTime / fillerLoadingTotalDuration);
+
+                    if (fillerProgressText != null)
+                        fillerProgressText.text = Mathf.RoundToInt(progress * 100).ToString() + "%";
+                    if (fillerImage != null)
+                        fillerImage.fillAmount = progress;
+
+                    if (counterTime >= adTriggerTime && counterTime - Time.deltaTime < adTriggerTime)
+                    {
+                        AdsController.Instance.ShowInterstitialAd_Admob();
+                    }
+
+                    yield return new WaitForEndOfFrame();
+                }
+
+                loadingCanvas.SetActive(false);
+                fillerLoadingPanel.SetActive(false);
                 Behaviour?.Invoke();
             }
         }
