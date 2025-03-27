@@ -184,7 +184,7 @@ namespace AkaitoAi.Advertisement
 
                     if (counterTime >= adTriggerTime && counterTime - Time.deltaTime < adTriggerTime)
                     {
-                        AdsController.Instance.ShowInterstitialAd_Admob();
+                        //AdsController.Instance.ShowInterstitialAd_Admob();
                     }
 
                     yield return new WaitForEndOfFrame();
