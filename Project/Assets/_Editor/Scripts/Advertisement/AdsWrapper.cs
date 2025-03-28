@@ -3,18 +3,26 @@ using System;
 using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
+using AkaitoAi.Extensions;
+
+#if UNITY_ANDROID
+using UnityEngine.Android;
+#endif
 
 namespace AkaitoAi.Advertisement
 {
     public class AdsWrapper : SingletonPresistent<AdsWrapper>
     {
-        [SerializeField] private GameObject loadingCanvas, loadingPanel, loadingTextPanel;
+        [SerializeField] private GameObject loadingCanvas, loadingPanel, 
+            loadingTextPanel, adNotAvailable;
         [Space]
 
         [Header("Loading Count")]
         [SerializeField] private GameObject loadingCountPanel;
         [SerializeField] private Text loadingCountText;
         [SerializeField] private float countdownTime = 3;
+        [SerializeField] private float adAfterSeconds = 60;
+        private Coroutine runtimeInterstitial;
         [Space]
 
         [Header("Filler Loading")]
@@ -25,7 +33,17 @@ namespace AkaitoAi.Advertisement
         [SerializeField] private float fillerLoadingAdTriggerFraction = 0.75f;
         [Space]
 
+
         private float currentTime;
+
+        [Header("Internet Reachability")]
+        [SerializeField] private bool isCheckingInternet = false;
+        [SerializeField] private GameObject noInternetPanel;
+        [SerializeField] private Button openSettingsButton;
+        [SerializeField] private float checkInterval = 5f;
+        private float lastCheckTime;
+        private bool isChecking;
+        private const float INITIAL_DELAY = 1f;
 
 
         #region Ads Calling
@@ -70,13 +88,13 @@ namespace AkaitoAi.Advertisement
         }
 
         // Interstitial Panels
-        public void ShowInterstitialWithLoadingPanel(Action Behaviour = null)
+        public void ShowInterstitialWithLoadingPanel(Action Behaviour = null, Action noInternet = null)
         {
-            Behaviour?.Invoke();
-
-            return;
-
-            InternetReachability(() => StartCoroutine(LoadInterstital()), () => Behaviour?.Invoke());
+            InternetReachability(() => StartCoroutine(LoadInterstital()), () =>
+            {
+                Behaviour?.Invoke();
+                noInternet?.Invoke();
+            });
 
             IEnumerator LoadInterstital()
             {
@@ -97,10 +115,6 @@ namespace AkaitoAi.Advertisement
         }
         public void ShowInterstitialWithLoadingText(Action Behaviour = null)
         {
-            Behaviour?.Invoke();
-
-            return;
-
             InternetReachability(() => StartCoroutine(LoadInterstital()), () => Behaviour?.Invoke());
 
             IEnumerator LoadInterstital()
@@ -120,10 +134,6 @@ namespace AkaitoAi.Advertisement
         }
         public void ShowInterstitialWithLoadingCount(Action Behaviour = null)
         {
-            Behaviour?.Invoke();
-
-            return;
-
             InternetReachability(() => {
 
                 currentTime = countdownTime;
@@ -138,7 +148,11 @@ namespace AkaitoAi.Advertisement
             {
                 while (currentTime > 0)
                 {
-                    loadingCountText.text = $"AD in {currentTime.ToString()} ";
+                    //loadingCountText.text = $"AD in {currentTime.ToString()} ";
+                    loadingCountText.text = $"{currentTime.ToString()}";
+
+                    //TODO Sounds Calling
+                    //SoundManager.Instance?.PlayNormalTimerSound();
 
                     yield return new WaitForSeconds(1f);
 
@@ -147,17 +161,18 @@ namespace AkaitoAi.Advertisement
 
                 //AdsController.Instance.ShowInterstitialAd_Admob();
 
+                //TODO Sounds Calling
+                //SoundManager.Instance?.sfxAudioSource.Stop();
+
                 loadingCanvas.SetActive(false);
                 loadingCountPanel.SetActive(false);
 
                 Behaviour?.Invoke();
             }
         }
-        public void ShowInterstitialWithFiller(Action Behaviour = null)
+        public void ShowInterstitialWithFillerLoading(Action Behaviour = null)
         {
-            Behaviour?.Invoke();
-
-            return;
+            Time.timeScale = 1f;
 
             InternetReachability(() => StartCoroutine(LoadInterstital()), () => Behaviour?.Invoke());
 
@@ -194,6 +209,22 @@ namespace AkaitoAi.Advertisement
                 fillerLoadingPanel.SetActive(false);
                 Behaviour?.Invoke();
             }
+        }
+        public void StartRuntimeCommercial()
+        {
+            StopRuntimeCommercial();
+
+            runtimeInterstitial =
+                StartCoroutine(AkaitoAiExtensions.SimpleDelay(
+                    adAfterSeconds, () => {
+                        ShowInterstitialWithLoadingCount(() => {
+                            StartRuntimeCommercial();
+                        });
+                    }));
+        }
+        public void StopRuntimeCommercial()
+        {
+            if (runtimeInterstitial != null) StopCoroutine(runtimeInterstitial);
         }
         //
 
@@ -271,6 +302,79 @@ namespace AkaitoAi.Advertisement
             else StartCoroutine(withoutInternet);
         }
 
+        //AndroidManifest.xml: Create this file in Assets/Plugins/Android/
+        //<?xml version="1.0" encoding="utf-8"?>
+        //<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+        //<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+        //<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+        //<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+        //<application>
+        //<activity android:name="com.unity3d.player.UnityPlayerActivity">
+        //</activity>
+        //</application>
+        //</manifest>
+        public void CheckInternetConnection()
+        {
+            if (isChecking) return; // Prevent overlapping checks
+
+            isChecking = true;
+            lastCheckTime = Time.time;
+
+            switch (Application.internetReachability)
+            {
+                case NetworkReachability.NotReachable:
+                    ShowNoInternetUI();
+                    break;
+                case NetworkReachability.ReachableViaCarrierDataNetwork:
+                    HideNoInternetUI();
+                    break;
+                case NetworkReachability.ReachableViaLocalAreaNetwork:
+                    HideNoInternetUI();
+                    break;
+            }
+
+            isChecking = false;
+        }
+        private void ShowNoInternetUI()
+        {
+            loadingCanvas.SetActive(true);
+            noInternetPanel.SetActive(true);
+        }
+
+        private void HideNoInternetUI()
+        {
+            loadingCanvas.SetActive(false);
+            noInternetPanel.SetActive(false);
+        }
+        private void OpenWifiSettings()
+        {
+#if UNITY_ANDROID
+            try
+            {
+                // Check and request permission
+                if (!Permission.HasUserAuthorizedPermission(Permission.FineLocation))
+                {
+                    Permission.RequestUserPermission(Permission.FineLocation);
+                    return; // Will check again after permission granted
+                }
+
+                using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+                using (AndroidJavaObject currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
+                using (AndroidJavaObject intentObject = new AndroidJavaObject("android.content.Intent"))
+                {
+                    intentObject.Call<AndroidJavaObject>("setAction", "android.settings.WIFI_SETTINGS");
+                    currentActivity.Call("startActivity", intentObject);
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("Error opening WiFi settings: " + e.Message);
+            }
+#else
+        statusText.text = "WiFi settings only available on Android";
+#endif
+        }
+
         #endregion
 
         #region Rewarded Ads
@@ -323,6 +427,23 @@ namespace AkaitoAi.Advertisement
 #endif
         }
 
+        public void ShowAdNotAvailable()
+        {
+            StartCoroutine(Delay());
+
+            IEnumerator Delay()
+            {
+                loadingCanvas.SetActive(true);
+                adNotAvailable.SetActive(true);
+
+                yield return new WaitForSecondsRealtime(2f);
+
+                loadingCanvas.SetActive(false);
+                adNotAvailable.SetActive(false);
+            }
+        }
+
+
         #endregion
 
         #region Firebase
@@ -348,27 +469,54 @@ namespace AkaitoAi.Advertisement
             });
         }
         #endregion
-    }
 
-    public enum ADBannerSize
-    {
-        Banner = 0,
-        MediumRectangle = 1,
-        IABBanner = 2,
-        Leaderboard = 3,
-        AdaptiveSize = 4,
-        AdaptiveCustomSize_500 = 5,
-        Collapsible = 6
-    }
+        #region Events
 
-    public enum AdPosition
-    {
-        Top,
-        Bottom,
-        TopLeft,
-        TopRight,
-        BottomLeft,
-        BottomRight,
-        Center
+        EventBinding<OnEnterLeftSidedAd> enterLeftSidedAdEventBinding;
+        EventBinding<OnExitLeftSidedAd> exitLeftSidedAdEventBinding;
+
+        private void Start()
+        {
+            if (!isCheckingInternet) return;
+
+            noInternetPanel.SetActive(false);
+
+            Invoke(nameof(CheckInternetConnection), INITIAL_DELAY);
+
+            openSettingsButton.onClick.AddListener(OpenWifiSettings);
+        }
+        private void Update()
+        {
+            if (!isCheckingInternet) return;
+
+            if (Time.time - lastCheckTime >= checkInterval && !isChecking)
+            {
+                CheckInternetConnection();
+            }
+        }
+        private void OnEnable()
+        {
+            enterLeftSidedAdEventBinding = new EventBinding<OnEnterLeftSidedAd>(() => { 
+                HideSmallBannerTopRight();
+                ShowMediumBannerBottomLeft();
+            });
+            EventBus<OnEnterLeftSidedAd>.Register(enterLeftSidedAdEventBinding);
+
+            exitLeftSidedAdEventBinding = new EventBinding<OnExitLeftSidedAd>(() => {
+                HideMediumBannerBottomLeft();
+                ShowSmallBannerTopRight();
+            });
+            EventBus<OnExitLeftSidedAd>.Register(exitLeftSidedAdEventBinding);
+        }
+
+        private void OnDisable()
+        {
+            EventBus<OnEnterLeftSidedAd>.Deregister(enterLeftSidedAdEventBinding);
+            EventBus<OnExitLeftSidedAd>.Deregister(exitLeftSidedAdEventBinding);
+        }
+
+        #endregion
     }
+    public struct OnEnterLeftSidedAd : IEvent { }
+    public struct OnExitLeftSidedAd : IEvent { }
 }
