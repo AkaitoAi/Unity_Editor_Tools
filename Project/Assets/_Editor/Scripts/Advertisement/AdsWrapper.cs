@@ -371,7 +371,7 @@ namespace AkaitoAi.Advertisement
                 Debug.LogError("Error opening WiFi settings: " + e.Message);
             }
 #else
-        statusText.text = "WiFi settings only available on Android";
+        //statusText.text = "WiFi settings only available on Android";
 #endif
         }
 
