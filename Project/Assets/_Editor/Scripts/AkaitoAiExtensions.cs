@@ -429,7 +429,6 @@ namespace AkaitoAi.Extensions
             }
             return list;
         }
-
         #endregion
 
         #region Transform
@@ -1016,8 +1015,83 @@ namespace AkaitoAi.Extensions
 
         }
 
-        // Extension method for Action that logs the caller name and invokes the action
-        public static void ExecuteWithCaller(this Action action, [CallerMemberName] string callerName = null)
+        public class SwitchCase<T>
+        {
+            private T value;
+            private bool hasMatched;
+            private Action defaultAction;
+
+            public SwitchCase(T value)
+            {
+                this.value = value;
+                this.hasMatched = false;
+            }
+
+            public SwitchCase<T> Case(T caseValue, Action action)
+            {
+                if (!hasMatched && EqualityComparer<T>.Default.Equals(value, caseValue))
+                {
+                    action?.Invoke();
+                    hasMatched = true;
+                }
+                return this;
+            }
+
+            public SwitchCase<T> Default(Action action)
+            {
+                defaultAction = action;
+                return this;
+            }
+
+            public void Execute()
+            {
+                if (!hasMatched)
+                {
+                    defaultAction?.Invoke();
+                }
+            }
+        }
+
+        public static SwitchCase<T> Switch<T>(this T value)
+        {
+            return new SwitchCase<T>(value);
+        }
+
+    //    nt number = 2;
+
+    //    // Basic usage
+    //    number.Switch()
+    //        .Case(1, () => Debug.Log("Number is 1"))
+    //        .Case(2, () => Debug.Log("Number is 2"))
+    //        .Case(3, () => Debug.Log("Number is 3"))
+    //        .Default(() => Debug.Log("Number is something else"))
+    //        .Execute();
+
+    //    // Example with string
+    //    string text = "hello";
+    //    text.Switch()
+    //        .Case("hello", () => Debug.Log("Said hello"))
+    //        .Case("goodbye", () => Debug.Log("Said goodbye"))
+    //        .Default(() => Debug.Log("Said something else"))
+    //        .Execute();
+
+    //    // Example with enum
+    //    MyEnum enumValue = MyEnum.Second;
+    //    enumValue.Switch()
+    //        .Case(MyEnum.First, () => Debug.Log("First case"))
+    //        .Case(MyEnum.Second, () => Debug.Log("Second case"))
+    //        .Execute();
+    //}
+
+    //enum MyEnum
+    //{
+    //    First,
+    //    Second,
+    //    Third
+    //}
+
+    // Extension method for Action that logs the caller name and invokes the action
+    public static void ExecuteWithCaller(this Action action, [CallerMemberName] string callerName = null)
         {
             Debug.Log("Action called from: " + callerName);
             action?.Invoke();
