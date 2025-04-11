@@ -6,24 +6,58 @@ namespace AkaitoAi
 {
     public class ReplaceGameObject : EditorWindow
     {
-        GameObject[] selectedObjects;
-        GameObject replacementObject;
-        bool copyRotation;
-        bool copyScale;
+        private GameObject[] selectedObjects;
+        private GameObject replacementObject;
+        private bool copyRotation;
+        private bool copyScale;
 
         [MenuItem("AkaitoAi/Tools/GameObject/Quick Object Replacer")]
         public static void ShowWindow()
         {
-            ReplaceGameObject window = GetWindow<ReplaceGameObject>("Quick Object Replacer");
-            window.maxSize = new Vector2(window.maxSize.x, 150);
-            window.minSize = new Vector2(250, 130);
+            // Create a new window instance each time the menu item is clicked
+            ReplaceGameObject window = CreateInstance<ReplaceGameObject>();
+            window.titleContent = new GUIContent("Quick Object Replacer");
+            window.maxSize = new Vector2(float.MaxValue, 200); // Increased height for preview
+            window.minSize = new Vector2(250, 180);
+            window.Show();
         }
 
         private void OnGUI()
         {
             GUILayout.Space(15);
+
+            // Replacement object field
             replacementObject = (GameObject)EditorGUILayout.ObjectField("Replacement object", replacementObject, typeof(GameObject), true);
-            GUILayout.Space(3);
+
+            // Preview of the replacement object
+            if (replacementObject != null)
+            {
+                GUILayout.Space(5);
+                Texture2D preview = AssetPreview.GetAssetPreview(replacementObject);
+                if (preview == null)
+                {
+                    // Fallback to icon if preview is not available
+                    preview = EditorGUIUtility.ObjectContent(replacementObject, typeof(GameObject)).image as Texture2D;
+                }
+                if (preview != null)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.FlexibleSpace();
+                    GUILayout.Label(preview, GUILayout.Width(64), GUILayout.Height(64));
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+                }
+                else
+                {
+                    GUILayout.Label("No preview available", EditorStyles.centeredGreyMiniLabel);
+                }
+            }
+            else
+            {
+                GUILayout.Label("No object selected", EditorStyles.centeredGreyMiniLabel);
+            }
+
+            GUILayout.Space(5);
             copyRotation = EditorGUILayout.Toggle("Copy Rotation", copyRotation);
             copyScale = EditorGUILayout.Toggle("Copy Scale", copyScale);
 
@@ -40,6 +74,18 @@ namespace AkaitoAi
         private void Replace()
         {
             selectedObjects = Selection.gameObjects;
+
+            if (selectedObjects.Length == 0)
+            {
+                Debug.LogWarning("No GameObjects selected for replacement.");
+                return;
+            }
+
+            if (replacementObject == null)
+            {
+                Debug.LogWarning("No replacement object assigned.");
+                return;
+            }
 
             string prefabType = PrefabUtility.GetPrefabAssetType(replacementObject).ToString();
             string instanceStatus = null;
@@ -85,13 +131,13 @@ namespace AkaitoAi
                 }
                 else
                 {
-                    newGameObject = (GameObject)GameObject.Instantiate(replacementObject);
+                    newGameObject = Instantiate(replacementObject);
                     newGameObject.name = gameObject.name;
                     if (hasParent)
                         newGameObject.transform.parent = parent;
                 }
 
-                Undo.RegisterCreatedObjectUndo(newGameObject, "created object");
+                Undo.RegisterCreatedObjectUndo(newGameObject, "Created object");
 
                 newGameObject.transform.position = gameObject.transform.position;
                 if (copyRotation)
@@ -102,6 +148,7 @@ namespace AkaitoAi
                 Undo.DestroyObjectImmediate(gameObject);
                 newSelected.Add(newGameObject);
             }
+
             Selection.objects = newSelected.ToArray();
 
             string goString = (newSelected.Count > 1) ? " GameObjects have " : " GameObject has ";
@@ -114,6 +161,8 @@ namespace AkaitoAi
             }
             else
                 prefabType = "None";
+
+            Debug.Log($"{newSelected.Count}{goString}been replaced with {prefabType}.");
         }
     }
 }
