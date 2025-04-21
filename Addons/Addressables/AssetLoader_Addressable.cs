@@ -1,0 +1,300 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
+
+// Enum for better clarity of asset loading statuses
+public enum AssetStatus { NotLoaded, Loading, Loaded, Failed }
+
+public class AssetLoader_Addressable : MonoBehaviour
+{
+    public static AssetLoader_Addressable instance { get; private set; }
+
+    [Header("Addressable")]
+    public AssetLabelReference[] AssetReferences;
+
+    // Dictionary to track loaded assets by label
+    private Dictionary<string, GameObject> loadedAssets = new Dictionary<string, GameObject>();
+
+    // Dictionary to track the status of each asset (using AssetStatus enum)
+    internal Dictionary<string, AssetStatus> assetStatus = new Dictionary<string, AssetStatus>();
+
+    private void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+    void Start()
+    {
+        LoadAsset_Index(0);
+    }
+
+    // Load all assets at once
+    public void LoadAssets_All()
+    {
+        for (int i = 0; AssetReferences.Length > i; i++)
+        {
+            LoadAsset(AssetReferences[i]);
+        }
+    }
+
+    // Load a single asset based on its reference
+    void LoadAsset(AssetLabelReference assetReference)
+    {
+        if (assetStatus.ContainsKey(assetReference.labelString))
+        {
+            if (assetStatus[assetReference.labelString] == AssetStatus.Loading || assetStatus[assetReference.labelString] == AssetStatus.Loaded)
+            {
+                Debug.LogWarning($"Asset {assetReference.labelString} is already in the process of loading or already loaded.");
+                return;
+            }
+        }
+        else
+        {
+            assetStatus[assetReference.labelString] = AssetStatus.Loading; // Set to loading status
+        }
+
+        // Begin loading the asset
+        Addressables.LoadAssetAsync<GameObject>(assetReference).Completed += handle =>
+        {
+            if (handle.Status == AsyncOperationStatus.Succeeded)
+            {
+                loadedAssets[assetReference.labelString] = handle.Result;  // Store the loaded asset
+                assetStatus[assetReference.labelString] = AssetStatus.Loaded;  // Mark it as loaded
+                Debug.Log($"Asset loaded: {handle.Result.name}");
+
+            }
+            else
+            {
+                assetStatus[assetReference.labelString] = AssetStatus.Failed;  // Mark it as failed
+                Debug.LogWarning($"Failed to load asset for reference: {assetReference.labelString}");
+
+            }
+        };
+    }
+    void LoadAsset_immediate(AssetLabelReference assetReference, Transform parent)
+    {
+        if (assetStatus.ContainsKey(assetReference.labelString))
+        {
+            if (assetStatus[assetReference.labelString] == AssetStatus.Loading || assetStatus[assetReference.labelString] == AssetStatus.Loaded)
+            {
+                Debug.LogWarning($"Asset {assetReference.labelString} is already in the process of loading or already loaded.");
+                return;
+            }
+        }
+        else
+        {
+            assetStatus[assetReference.labelString] = AssetStatus.Loading; // Set to loading status
+        }
+
+        // Begin loading the asset
+        Addressables.LoadAssetAsync<GameObject>(assetReference).Completed += handle =>
+        {
+            if (handle.Status == AsyncOperationStatus.Succeeded)
+            {
+                GameObject asset = loadedAssets[assetReference.labelString] = handle.Result;  // Store the loaded asset
+                assetStatus[assetReference.labelString] = AssetStatus.Loaded;  // Mark it as loaded
+                Debug.Log($"Asset loaded: {handle.Result.name}");
+
+                //loadedAssets[assetReference.labelString];
+                if (asset != null)
+                {
+                    if (parent != null)
+                    {
+                        GameObject instance = Instantiate(asset, parent);  // Instantiate the loaded asset
+                        instance.SetActive(true);
+                    }
+                    else
+                    {
+                        GameObject instance = Instantiate(asset);  // Instantiate the loaded asset
+                        instance.SetActive(true);
+                    }
+                    Debug.Log($"Asset instantiated: {asset.name}");
+                }
+
+            }
+            else
+            {
+                assetStatus[assetReference.labelString] = AssetStatus.Failed;  // Mark it as failed
+                Debug.LogWarning($"Failed to load asset for reference: {assetReference.labelString}");
+
+            }
+        };
+    }
+
+    // Instantiate a specific asset based on its label
+    void InstantiateAsset(AssetLabelReference assetReference, Transform parent)
+    {
+        if (assetStatus.ContainsKey(assetReference.labelString) && assetStatus[assetReference.labelString] == AssetStatus.Loaded)
+        {
+            GameObject asset = loadedAssets[assetReference.labelString];
+            if (asset != null)
+            {
+                GameObject instance = Instantiate(asset);  // Instantiate the loaded asset
+                instance.SetActive(true);
+                Debug.Log($"Asset instantiated: {asset.name}");
+            }
+        }
+        else
+        {
+            LoadAsset_immediate(assetReference, parent);
+            Debug.LogWarning($"No loaded asset found with label: {assetReference.labelString} or the asset is still loading.");
+        }
+    }
+
+    // Release a specific asset based on its label
+    void ReleaseAsset(AssetLabelReference assetReference)
+    {
+        if (loadedAssets.ContainsKey(assetReference.labelString))
+        {
+            GameObject asset = loadedAssets[assetReference.labelString];
+            if (asset != null)
+            {
+                Addressables.Release(asset);  // Release the asset from memory
+                loadedAssets.Remove(assetReference.labelString);  // Remove from loaded assets
+                assetStatus.Remove(assetReference.labelString);  // Remove from status tracking
+                Debug.Log($"Asset {asset.name} released.");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"Asset with label {assetReference.labelString} not found.");
+        }
+    }
+
+    // Optional: Release all loaded assets
+    void ReleaseAllAssets()
+    {
+        foreach (var asset in loadedAssets.Values)
+        {
+            Addressables.Release(asset);  // Release each asset
+        }
+        loadedAssets.Clear();  // Clear loaded assets dictionary
+        assetStatus.Clear();  // Clear asset status dictionary
+        Debug.Log("All assets released.");
+
+    }
+
+    // Helper method to get the status of an asset by its label
+    AssetStatus GetAssetStatus(string label)
+    {
+        if (assetStatus.ContainsKey(label))
+        {
+            return assetStatus[label];
+        }
+        return AssetStatus.NotLoaded;  // Return NotLoaded if status is not found
+    }
+
+    // New function to get a loaded asset by index
+    public GameObject GetAsset_Index(int index)
+    {
+        if (index < 0 || index >= AssetReferences.Length)
+        {
+            Debug.LogWarning($"Invalid index {index} for AssetReferences array.");
+            return null;
+        }
+
+        string label = AssetReferences[index].labelString;
+        if (assetStatus.ContainsKey(label) && assetStatus[label] == AssetStatus.Loaded)
+        {
+            return loadedAssets[label];
+        }
+
+        Debug.LogWarning($"Asset at index {index} (label: {label}) is not loaded or failed to load.");
+        return null;
+    }
+
+    //Examples
+
+    private void StatusCheck()
+    {
+        AssetStatus status = AssetLoader_Addressable.instance.GetAssetStatus(AssetLoader_Addressable.instance.AssetReferences[0].labelString);
+        if (status == AssetStatus.Loading)
+        {
+        }
+        else if (status == AssetStatus.Loaded)
+        {
+        }
+        else if (status == AssetStatus.NotLoaded)
+        {
+        }
+        else if (status == AssetStatus.Failed)
+        {
+        }
+    }
+
+    public void LoadAsset_Index(int index)
+    {
+        LoadAsset(AssetReferences[index]);
+    }
+    public void InstantiateAsset_Index(int index, Transform parent = null)
+    {
+        InstantiateAsset(AssetReferences[index], parent);
+    }
+
+    public void ReleaseAsset_Index(int index)
+    {
+        ReleaseAsset(AssetReferences[index]);
+    }
+    public void ReleaseAsset_All()
+    {
+        ReleaseAllAssets();
+    }
+
+    public GameObject InstantiateAsset_Index_Return(int index, Transform parent = null)
+    {
+        if (index < 0 || index >= AssetReferences.Length)
+        {
+            Debug.LogWarning($"Invalid index {index} for AssetReferences array.");
+            return null;
+        }
+
+        string label = AssetReferences[index].labelString;
+        if (assetStatus.ContainsKey(label) && assetStatus[label] == AssetStatus.Loaded)
+        {
+            GameObject asset = loadedAssets[label];
+            if (asset != null)
+            {
+                GameObject instance = parent != null ? Instantiate(asset, parent) : Instantiate(asset);
+                instance.SetActive(true);
+                Debug.Log($"Asset instantiated: {asset.name}");
+                return instance;
+            }
+        }
+        else
+        {
+            // Load the asset immediately and instantiate it
+            assetStatus[label] = AssetStatus.Loading;
+            Addressables.LoadAssetAsync<GameObject>(AssetReferences[index]).Completed += handle =>
+            {
+                if (handle.Status == AsyncOperationStatus.Succeeded)
+                {
+                    GameObject asset = handle.Result;
+                    loadedAssets[label] = asset;
+                    assetStatus[label] = AssetStatus.Loaded;
+                    Debug.Log($"Asset loaded: {asset.name}");
+
+                    GameObject instance = parent != null ? Instantiate(asset, parent) : Instantiate(asset);
+                    instance.SetActive(true);
+                    Debug.Log($"Asset instantiated: {asset.name}");
+                    // Note: We can't return the instance here due to async callback
+                }
+                else
+                {
+                    assetStatus[label] = AssetStatus.Failed;
+                    Debug.LogWarning($"Failed to load asset for reference: {label}");
+                }
+            };
+        }
+
+        Debug.LogWarning($"Asset at index {index} (label: {label}) is not loaded or still loading.");
+        return null;
+    }
+}
