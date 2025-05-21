@@ -1124,6 +1124,90 @@ namespace AkaitoAi.Extensions
             return UnityEngine.Random.Range(0, chanceMax) < chance;
         }
 
+        public static bool ReplaceMaterial(this Renderer renderer, Material material, out int targetMaterialIndex)
+        {
+            targetMaterialIndex = -1;
+            if (renderer == null || material == null)
+            {
+                Debug.LogWarning("Renderer or Material is null.");
+                return false;
+            }
+
+            Material[] materials = renderer.materials;
+            Material newMaterial = new Material(material);
+            bool materialFound = false;
+
+            for (int i = 0; i < materials.Length; i++)
+            {
+                if (materials[i].name.Contains(material.name))
+                {
+                    materials[i] = newMaterial;
+                    targetMaterialIndex = i;
+                    materialFound = true;
+                    break;
+                }
+            }
+
+            if (materialFound)
+            {
+                renderer.materials = materials;
+            }
+            else
+            {
+                Debug.LogWarning($"Material with name containing '{material.name}' not found in {renderer.name}. Current materials: {string.Join(", ", materials.Select(m => m.name))}");
+            }
+
+            return materialFound;
+        }
+
+        public static void ReplaceMaterial(this Renderer renderer, Material material)
+        {
+            int targetMaterialIndex = -1;
+            if (renderer == null || material == null)
+            {
+                Debug.LogWarning("Renderer or Material is null.");
+            }
+
+            Material[] materials = renderer.materials;
+            Material newMaterial = new Material(material);
+            bool materialFound = false;
+
+            for (int i = 0; i < materials.Length; i++)
+            {
+                if (materials[i].name.Contains(material.name))
+                {
+                    materials[i] = newMaterial;
+                    targetMaterialIndex = i;
+                    materialFound = true;
+                    break;
+                }
+            }
+
+            if (materialFound)
+            {
+                renderer.materials = materials;
+            }
+            else
+            {
+                Debug.LogWarning($"Material with name containing '{material.name}' not found in {renderer.name}. Current materials: {string.Join(", ", materials.Select(m => m.name))}");
+            }
+        }
+
+        public static void ApplyOffset(this Material material, float currentSpeed, float maxSpeed, int direction, float scrollSpeedMultiplier, bool isXOffset, ref float yOffset)
+        {
+            float speedFactor = Mathf.Clamp01(currentSpeed / maxSpeed);
+            float deltaOffset = direction * speedFactor * scrollSpeedMultiplier * Time.deltaTime;
+
+            yOffset += deltaOffset;
+
+            Vector2 currentOffset = material.mainTextureOffset;
+
+            if (!isXOffset)
+                material.mainTextureOffset = new Vector2(currentOffset.x, yOffset);
+            else
+                material.mainTextureOffset = new Vector2(yOffset, currentOffset.y);
+        }
+
         public static void InEditor(Action inEditor)
         {
 #if UNITY_EDITOR
