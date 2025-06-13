@@ -397,6 +397,15 @@ namespace AkaitoAi.Extensions
             go.SetActive(!state);
         }
 
+        public static GameObject GetChildGameObjectByName(GameObject obj, string name)
+        {
+            Transform trans = obj.transform;
+            Transform childTrans = trans.Find(name);
+            if (childTrans != null)
+                return childTrans.gameObject;
+            else
+                return null;
+        }
 
         #endregion
 
