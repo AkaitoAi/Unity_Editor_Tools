@@ -1489,17 +1489,32 @@ namespace AkaitoAi.Extensions
         }
         public static IEnumerator WaitForAudio(this MonoBehaviour mono, AudioSource audioSource, Action onComplete, float timeout = 10f)
         {
+            if (audioSource == null)
+            {
+                Debug.LogWarning("WaitForAudio failed: AudioSource is null.");
+                yield break;
+            }
+
             float timer = 0f;
-            while (!audioSource.isPlaying && timer < timeout)
+
+            // Wait until the audio starts playing (but don't timeout here)
+            while (!audioSource.isPlaying && audioSource.clip != null && audioSource.time <= 0f)
             {
+                yield return null;
+            }
+
+            // Now wait until it's done or timeout
+            while (audioSource.isPlaying)
+            {
+                if (timer >= timeout)
+                {
+                    Debug.LogWarning("WaitForAudio timed out.");
+                    break;
+                }
                 timer += Time.deltaTime;
                 yield return null;
             }
-            while (audioSource.isPlaying && timer < timeout)
-            {
-                timer += Time.deltaTime;
-                yield return null;
-            }
+
             onComplete?.Invoke();
         }
         public static IEnumerator Countdown(this MonoBehaviour mono, float duration, System.Action<float> onTick = null, System.Action onComplete = null)
