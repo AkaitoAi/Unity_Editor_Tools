@@ -1,16 +1,16 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Nrjwolf.Tools.AttachAttributes;
+using AkaitoAi;
 using UnityEditor;
 using UnityEngine;
 
-namespace Nrjwolf.Tools.Editor.AttachAttributes
+namespace AkaitoAi
 {
     public static class AttachAttributesUtils
     {
         private const string k_ContextMenuItemLabel = "CONTEXT/Component/AttachAttributes";
-        private const string k_ToolsMenuItemLabel = "Tools/Nrjwolf/AttachAttributes";
+        private const string k_ToolsMenuItemLabel = "AkaitoAi/Tools/AttachAttributes";
 
         private const string k_EditorPrefsAttachAttributesGlobal = "IsAttachAttributesActive";
 

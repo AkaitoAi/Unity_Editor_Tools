@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Nrjwolf.Tools.AttachAttributes
+namespace AkaitoAi
 {
     [AttributeUsage(System.AttributeTargets.Field)] public class GetComponentAttribute : AttachPropertyAttribute { }
 
