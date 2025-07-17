@@ -12,9 +12,13 @@ public class AssetLoader_Addressable : MonoBehaviour
 
     [Header("Addressable")]
     public AssetLabelReference[] AssetReferences;
+    public AssetLabelReference[] ScriptableObjectReferences;
 
     // Dictionary to track loaded assets by label
     private Dictionary<string, GameObject> loadedAssets = new Dictionary<string, GameObject>();
+
+    // Dictionary to track loaded ScriptableObjects
+    private Dictionary<string, ScriptableObject> loadedScriptableObjects = new Dictionary<string, ScriptableObject>();
 
     // Dictionary to track the status of each asset (using AssetStatus enum)
     internal Dictionary<string, AssetStatus> assetStatus = new Dictionary<string, AssetStatus>();
@@ -34,6 +38,11 @@ public class AssetLoader_Addressable : MonoBehaviour
     void Start()
     {
         LoadAsset_Index(0);
+    }
+
+    private void OnDisable()
+    {
+        ReleaseAllAssets();
     }
 
     // Load all assets at once
@@ -176,9 +185,14 @@ public class AssetLoader_Addressable : MonoBehaviour
         {
             Addressables.Release(asset);  // Release each asset
         }
+
+        foreach (var so in loadedScriptableObjects.Values)
+            Addressables.Release(so);
+
         loadedAssets.Clear();  // Clear loaded assets dictionary
+        loadedScriptableObjects.Clear();
         assetStatus.Clear();  // Clear asset status dictionary
-        Debug.Log("All assets released.");
+        Debug.Log("All assets and scriptable objects released.");
 
     }
 
@@ -297,4 +311,102 @@ public class AssetLoader_Addressable : MonoBehaviour
         Debug.LogWarning($"Asset at index {index} (label: {label}) is not loaded or still loading.");
         return null;
     }
+
+    // Load ScriptableObject by label
+    public void LoadScriptableObject<T>(AssetLabelReference labelRef, System.Action<T> onLoaded = null) where T : ScriptableObject
+    {
+        string label = labelRef.labelString;
+
+        if (assetStatus.ContainsKey(label) &&
+            (assetStatus[label] == AssetStatus.Loading || assetStatus[label] == AssetStatus.Loaded))
+        {
+            Debug.LogWarning($"ScriptableObject {label} is already loading or loaded.");
+            return;
+        }
+
+        assetStatus[label] = AssetStatus.Loading;
+
+        Addressables.LoadAssetAsync<T>(labelRef).Completed += handle =>
+        {
+            if (handle.Status == AsyncOperationStatus.Succeeded)
+            {
+                T so = handle.Result;
+                loadedScriptableObjects[label] = so;
+                assetStatus[label] = AssetStatus.Loaded;
+                Debug.Log($"ScriptableObject loaded: {so.name}");
+                onLoaded?.Invoke(so);
+            }
+            else
+            {
+                assetStatus[label] = AssetStatus.Failed;
+                Debug.LogWarning($"Failed to load ScriptableObject for label: {label}");
+            }
+        };
+    }
+
+    public T GetLoadedScriptableObject<T>(string label) where T : ScriptableObject
+    {
+        if (loadedScriptableObjects.TryGetValue(label, out ScriptableObject so))
+            return so as T;
+
+        Debug.LogWarning($"ScriptableObject with label {label} not loaded.");
+        return null;
+    }
+
+    public void ReleaseScriptableObject(string label)
+    {
+        if (loadedScriptableObjects.TryGetValue(label, out ScriptableObject so))
+        {
+            Addressables.Release(so);
+            loadedScriptableObjects.Remove(label);
+            assetStatus.Remove(label);
+            Debug.Log($"ScriptableObject {so.name} released.");
+        }
+    }
+
+    public void LoadScriptableObject_Index<T>(int index, System.Action<T> onLoaded = null) where T : ScriptableObject
+    {
+        if (index < 0 || index >= ScriptableObjectReferences.Length)
+        {
+            Debug.LogWarning($"Invalid index {index} for ScriptableObjectReferences.");
+            return;
+        }
+
+        LoadScriptableObject<T>(ScriptableObjectReferences[index], onLoaded);
+    }
+
+    //[SerializeField] private AssetLabelReference levelSelectLabel;
+
+    //void Start()
+    //{
+    //    AssetLoader_Addressable.instance.LoadScriptableObject<LevelSelectSO>(levelSelectLabel, so =>
+    //    {
+    //        currentLevelSelectSO = so;
+    //        Debug.Log("LevelSelectSO loaded: " + so.name);
+    //    });
+    //}
+
+    //void Start()
+    //{
+    //    LoadScriptableObject_Index<LevelSelectSO>(0, so =>
+    //    {
+    //        currentLevelSelectSO = so;
+    //        Debug.Log("Loaded SO at start: " + so.name);
+    //    });
+
+    //    AssetLoader_Addressable.instance.LoadScriptableObject<LevelSelectSO>(levelSelectLabel, so =>
+    //    {
+    //        currentLevelSelectSO = so;
+    //    });
+
+    //    AssetLoader_Addressable.instance.LoadScriptableObject_Index<LevelSelectSO>(0, so =>
+    //    {
+    //        currentLevelSelectSO = so;
+    //    });
+
+    //    LevelSelectSO so = AssetLoader_Addressable.instance.GetLoadedScriptableObject<LevelSelectSO>("LevelSelect_Easy");
+
+    //}
+
+
 }
