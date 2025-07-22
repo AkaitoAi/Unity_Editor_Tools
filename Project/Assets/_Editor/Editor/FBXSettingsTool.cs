@@ -7,6 +7,7 @@ namespace AkaitoAi
     {
         // Model tab settings
         private bool applyModelSettings = true;
+        private bool applyGlobalScale = true;
         private float globalScale = 1.0f;
         private ModelImporterMeshCompression meshCompression = ModelImporterMeshCompression.High;
         private bool readWriteEnabled = false;
@@ -44,7 +45,12 @@ namespace AkaitoAi
             applyModelSettings = EditorGUILayout.Toggle("Apply Model Settings", applyModelSettings);
             if (applyModelSettings)
             {
-                globalScale = EditorGUILayout.FloatField("Global Scale", globalScale);
+                applyGlobalScale = EditorGUILayout.Toggle("Apply Global Scale", applyGlobalScale);
+                if (applyGlobalScale)
+                {
+                    globalScale = EditorGUILayout.FloatField("Global Scale", globalScale);
+                }
+
                 meshCompression = (ModelImporterMeshCompression)EditorGUILayout.EnumPopup("Mesh Compression", meshCompression);
                 readWriteEnabled = EditorGUILayout.Toggle("Read/Write Enabled", readWriteEnabled);
                 optimizeMesh = EditorGUILayout.Toggle("Optimize Mesh", optimizeMesh);
@@ -102,8 +108,11 @@ namespace AkaitoAi
 
                     if (applyModelSettings)
                     {
-                        // Model tab settings
-                        modelImporter.globalScale = globalScale;
+                        if (applyGlobalScale)
+                        {
+                            modelImporter.globalScale = globalScale;
+                        }
+
                         modelImporter.meshCompression = meshCompression;
                         modelImporter.isReadable = readWriteEnabled;
                         modelImporter.optimizeMeshPolygons = optimizeMesh;
@@ -117,13 +126,11 @@ namespace AkaitoAi
 
                     if (applyRigSettings)
                     {
-                        // Rig tab settings
                         modelImporter.animationType = animationType;
                     }
 
                     if (applyAnimationSettings)
                     {
-                        // Animation tab settings
                         modelImporter.importAnimation = importAnimation;
                         modelImporter.animationCompression = animationCompression;
                         //modelImporter.bakeSimulation = bakeAnimations;
@@ -131,7 +138,6 @@ namespace AkaitoAi
                         modelImporter.optimizeGameObjects = optimizeGameObjects;
                     }
 
-                    // Apply changes and reimport
                     AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
                     EditorUtility.SetDirty(modelImporter);
                 }
