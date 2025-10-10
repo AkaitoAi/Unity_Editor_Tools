@@ -12,7 +12,8 @@ public class TextureCompressionCopier : EditorWindow
         AndroidToStandalone,
         StandaloneToAndroid,
         iOSToStandalone,
-        StandaloneToiOS
+        StandaloneToiOS,
+        DefaultCompression 
     }
 
     private CopyDirection copyDirection;
@@ -75,14 +76,18 @@ public class TextureCompressionCopier : EditorWindow
         includeNormalMaps = EditorGUILayout.Toggle("Include Normal Maps", includeNormalMaps);
         includeLightmaps = EditorGUILayout.Toggle("Include Lightmaps", includeLightmaps);
 
-        if (GUILayout.Button("Copy Compression Settings"))
+        EditorGUILayout.Space(10);
+
+        if (GUILayout.Button(copyDirection == CopyDirection.DefaultCompression
+            ? "?? Remove Platform Overrides"
+            : "?? Copy Compression Settings"))
         {
             CopyCompressionSettings();
         }
 
         EditorGUILayout.HelpBox(
-            "Copies compression settings from one platform to another. Skips uncompressed textures.\n" +
-            "Optional dry run, type filtering, and normal/lightmap inclusion. Settings are saved between sessions.",
+            "Copies compression settings between platforms or resets to default.\n\n" +
+            "‘DefaultCompression’ removes platform overrides (Android, iOS, Standalone) for all selected or project textures.",
             MessageType.Info);
     }
 
@@ -90,14 +95,11 @@ public class TextureCompressionCopier : EditorWindow
     {
         string[] guids = applyToEntireProject ? AssetDatabase.FindAssets("t:Texture") : Selection.assetGUIDs;
 
-        string sourcePlatform = GetSourcePlatform();
-        string targetPlatform = GetTargetPlatform();
-
         int updatedCount = 0;
         int skippedCount = 0;
         string reportPath = Path.Combine(Application.dataPath, "../CompressionReport.txt");
-        using StreamWriter report = new StreamWriter(reportPath);
 
+        using StreamWriter report = new StreamWriter(reportPath);
         AssetDatabase.StartAssetEditing();
 
         try
@@ -105,7 +107,7 @@ public class TextureCompressionCopier : EditorWindow
             for (int i = 0; i < guids.Length; i++)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guids[i]);
-                EditorUtility.DisplayProgressBar("Copying Texture Compression", path, i / (float)guids.Length);
+                EditorUtility.DisplayProgressBar("Processing Textures", path, i / (float)guids.Length);
 
                 TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
                 if (importer == null)
@@ -129,8 +131,23 @@ public class TextureCompressionCopier : EditorWindow
                     continue;
                 }
 
-                TextureImporterPlatformSettings source = importer.GetPlatformTextureSettings(sourcePlatform);
+                // "DefaultCompression" - remove overrides
+                if (copyDirection == CopyDirection.DefaultCompression)
+                {
+                    importer.ClearPlatformTextureSettings("Android");
+                    importer.ClearPlatformTextureSettings("iOS");
+                    importer.ClearPlatformTextureSettings("Standalone");
+                    AssetDatabase.ImportAsset(path);
+                    report.WriteLine($"Removed platform overrides: {path}");
+                    updatedCount++;
+                    continue;
+                }
 
+                // perform normal copy logic
+                string sourcePlatform = GetSourcePlatform();
+                string targetPlatform = GetTargetPlatform();
+
+                TextureImporterPlatformSettings source = importer.GetPlatformTextureSettings(sourcePlatform);
                 if (!source.overridden && !forceOverrideIfMissing)
                 {
                     skippedCount++;
@@ -179,8 +196,12 @@ public class TextureCompressionCopier : EditorWindow
         report.WriteLine($"\nSummary: {updatedCount} updated, {skippedCount} skipped.");
         report.Close();
 
+        string message = copyDirection == CopyDirection.DefaultCompression
+            ? $"Removed platform overrides for {updatedCount} texture(s)."
+            : $"Copied compression settings for {updatedCount} texture(s).";
+
         EditorUtility.DisplayDialog("Texture Compression Copier Pro",
-            $"Copied compression settings for {updatedCount} texture(s).\nSkipped {skippedCount} texture(s).\nReport saved to: CompressionReport.txt",
+            $"{message}\nSkipped {skippedCount} texture(s).\nReport saved to: CompressionReport.txt",
             "OK");
     }
 
