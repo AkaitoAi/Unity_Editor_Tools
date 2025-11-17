@@ -1,16 +1,19 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
+#if USE_TIMELINE_AkaitoAi
 using UnityEngine.Playables;
 using UnityEngine.Timeline;
-using UnityEngine.Events;
+#endif
 
 namespace AkaitoAi.Timeline
 {
+#if USE_TIMELINE_AkaitoAi
     [RequireComponent(typeof(PlayableDirector))]
     [RequireComponent(typeof(SignalReceiver))]
+#endif
     public class TimelineCutsceneManager : MonoBehaviour
     {
-        //[SerializeField] private GameManager gameManager;
         //[SerializeField] private GameObject cutsceneScreen, resumeScreen;
         [SerializeField] private bool playLevelStartCS = false;
         [SerializeField] private GameObject cutsceneContainer;
@@ -23,8 +26,11 @@ namespace AkaitoAi.Timeline
         public struct CutSceneSetup
         {
             public GameObject cutsceneObj;
+#if USE_TIMELINE_AkaitoAi
             public PlayableDirector director;
             public PlayableAsset[] cutsceneParts;
+#endif
+            public UnityEvent OnPlayEvent, OnEndEvent;
             internal int cutScenePart;
         }
 
@@ -32,146 +38,185 @@ namespace AkaitoAi.Timeline
         public static event Action<int> OnCutScenePartAction;
         public static event Action OnCutSceneCompleteAction;
         public static event Action<float> OnFadeInOutScreenAction;
+        public static event Action<float> OnFadeInScreenAction;
+        public static event Action<float> OnFadeOutScreenAction;
 
+        public UnityEvent OnStartEvent;
         public UnityEvent OnCutSceneStartEvent;
         public UnityEvent OnCutSceneNextPartStartEvent;
         public UnityEvent OnCutSceneCompleteEvent;
+        
+        private GameManager gameManager;
 
         private void Start()
         {
-            //if(gameManager == null) gameManager = GameManager.Instance;
+            if(gameManager == null) gameManager = GameManager.GetInstance();
 
             if (playLevelStartCS) PlayCutScene();
+
+            OnStartEvent?.Invoke();
         }
 
         #region Signals
+        [ContextMenu("Play Cutscene")]
         public void PlayCutScene()
         {
-            //if (gameManager == null) gameManager = GameManager.Instance;
+            if (gameManager == null) gameManager = GameManager.GetInstance();
 
             foreach (CutSceneSetup cs in levelCutScenes)
                 cs.cutsceneObj.SetActive(false);
 
-            if (cutSceneCount >= levelCutScenes.Length) return;
+            if (cutSceneCount > levelCutScenes.Length - 1)
+            {
+                Debug.LogError($"Cutscene count is {cutSceneCount} but levelCutScenes length is {cutSceneCount > levelCutScenes.Length - 1}");
 
-            if (levelCutScenes[cutSceneCount].director == null) return;
+                return;
+            }
 
+#if USE_TIMELINE_AkaitoAi
+            if (levelCutScenes[cutSceneCount].director == null)
+            {
+                Debug.LogError($"Cutscene {levelCutScenes[cutSceneCount]} director is null");
+
+                return;
+            }
+#endif
             EnableCutScene(levelCutScenes[cutSceneCount].cutsceneObj);
 
             //TODO Sound Calling
 
         } // TODO Call to play cutscene
-        public void PlayNextCutscenePart() //TODO Add Emitter at the end of timeline length
+
+        [ContextMenu("Play Cutscene Next Part")]
+        public void PlayCutsceneNextPart() //TODO Add Emitter at the end of timeline length
         {
-            if (levelCutScenes[cutSceneCount].cutsceneParts == null) return;
+            CutSceneSetup cs = levelCutScenes[cutSceneCount];
 
-            if (levelCutScenes[cutSceneCount].cutScenePart >
-                levelCutScenes[cutSceneCount].cutsceneParts.Length) return;
+            if (cs.cutsceneParts == null || cs.cutsceneParts.Length == 0)
+            {
+                Debug.LogError("Cutscene parts are null or empty");
+                return;
+            }
 
-            levelCutScenes[cutSceneCount].cutScenePart++;
+            cs.cutScenePart = (cs.cutScenePart >= cs.cutsceneParts.Length - 1) ? 0 : cs.cutScenePart + 1;
 
-            OnCutScenePartAction?.Invoke(levelCutScenes[cutSceneCount].cutScenePart);
+            levelCutScenes[cutSceneCount] = cs;
+
+            OnCutScenePartAction?.Invoke(cs.cutScenePart);
             OnCutSceneNextPartStartEvent?.Invoke();
 
-            levelCutScenes[cutSceneCount].director.playableAsset =
-                levelCutScenes[cutSceneCount].cutsceneParts[levelCutScenes[cutSceneCount].cutScenePart];
-
-            levelCutScenes[cutSceneCount].director.Play();
+#if USE_TIMELINE_AkaitoAi
+            cs.director.playableAsset = cs.cutsceneParts[cs.cutScenePart];
+            cs.director.Play();
+#endif
         }
+        [ContextMenu("Stop Cutscene")]
         public void StopCutScene()  //TODO Add Emitter at the end of timeline length
         {
-            if (cutSceneCount >= levelCutScenes.Length) return;
-
             DisableCutScene(levelCutScenes[cutSceneCount].cutsceneObj);
 
             //TODO Sound Calling
         }
         public void FadeInOut(float time) => OnFadeInOutScreenAction?.Invoke(time); // TODO FadeInOut using CanvasGroup
+        public void FadeIn(float time) => OnFadeInScreenAction?.Invoke(time); // TODO FadeInOut using CanvasGroup
+        public void FadeOut(float time) => OnFadeOutScreenAction?.Invoke(time); // TODO FadeInOut using CanvasGroup
         public void CutSceneTimeScale(float scale) //TODO Timeline timescale
         {
-            if (!levelCutScenes[cutSceneCount].director.playableGraph.IsValid()) return;
+#if USE_TIMELINE_AkaitoAi
+            if (!levelCutScenes[cutSceneCount].director.playableGraph.IsValid())
+            {
+                Debug.LogError($"Cutscene {levelCutScenes[cutSceneCount]} director is not valid");
+
+                return;
+            }
 
             levelCutScenes[cutSceneCount].director.Play();
+#endif
 
             //levelCutScenes[cutSceneCount].director.
             //    playableGraph.GetRootPlayable
             //    (levelCutScenes[cutSceneCount].cutScenePart).
             //    SetSpeed(scale);
 
+#if USE_TIMELINE_AkaitoAi
             levelCutScenes[cutSceneCount].director.
                 playableGraph.GetRootPlayable
                 (0).
                 SetSpeed(scale);
 
             Time.timeScale = scale;
-        } 
+#endif
+        }
         #endregion
 
         #region CutsceneController
         private void EnableCutScene(GameObject csObj)
         {
-            if (cutSceneCount > levelCutScenes.Length) return;
+            if (cutSceneCount > levelCutScenes.Length - 1)
+            {
+                Debug.LogError($"Cutscene count is {cutSceneCount} but levelCutScenes length is {cutSceneCount > levelCutScenes.Length - 1}");
+
+                return;
+            }
 
             cutsceneContainer.SetActive(true);
 
             //TODO Switch to Cutscene Screen
-            //gameManager.state = GameplayScreens.CutScene;
-            //gameManager.UpdateGameplayState();
+            gameManager.State = GameplayScreens.CutScene;
+            gameManager.UpdateGameplayState();
 
             //TODO Controller
             //gameManager.selectedVehicleRCC.rigid.constraints =
             //    RigidbodyConstraints.FreezeAll;
 
-            EnableCutScene(csObj);
+#if USE_TIMELINE_AkaitoAi
+            levelCutScenes[cutSceneCount].director.playableAsset =
+            levelCutScenes[cutSceneCount].cutsceneParts[levelCutScenes[cutSceneCount].cutScenePart];
+#endif
+            csObj.SetActive(true);
 
-            void EnableCutScene(GameObject csObj)
-            {
-                levelCutScenes[cutSceneCount].director.playableAsset =
-                levelCutScenes[cutSceneCount].cutsceneParts[levelCutScenes[cutSceneCount].cutScenePart];
+            levelCutScenes[cutSceneCount].OnPlayEvent?.Invoke();
 
-                csObj.SetActive(true);
+            OnCutSceneStartAction?.Invoke();
+            OnCutSceneStartEvent?.Invoke();
 
-                OnCutSceneStartAction?.Invoke();
-                OnCutSceneStartEvent?.Invoke();
 
-                levelCutScenes[cutSceneCount].director.RebuildGraph();
-                levelCutScenes[cutSceneCount].director.time = 0.0;
-                levelCutScenes[cutSceneCount].director.Play();
-            }
+#if USE_TIMELINE_AkaitoAi
+            levelCutScenes[cutSceneCount].director.RebuildGraph();
+            levelCutScenes[cutSceneCount].director.time = 0.0;
+            levelCutScenes[cutSceneCount].director.Play();
+#endif
         }
 
         private void DisableCutScene(GameObject csObj)
         {
-            if (cutSceneCount > levelCutScenes.Length) return;
+            csObj.SetActive(false);
 
-            DisableCutScene(csObj);
+            //TODO Switch to Gameplay Screen
+            //gameManager.State = GameplayScreens.Resume;
+            //gameManager.UpdateGameplayState();
 
-            void DisableCutScene(GameObject csObj)
-            {
-                csObj.SetActive(false);
+            //TODO Controller
+            //gameManager.selectedVehicleRCC.canControl = true;
+            //gameManager.selectedVehicleRCC.rigid.constraints =
+            //    RigidbodyConstraints.None;
 
-                //TODO Switch to Gameplay Screen
-                //gameManager.state = GameplayScreens.Resume;
-                //gameManager.UpdateGameplayState();
+            levelCutScenes[cutSceneCount].OnEndEvent?.Invoke();
 
-                //TODO Controller
-                //gameManager.selectedVehicleRCC.canControl = true;
-                //gameManager.selectedVehicleRCC.rigid.constraints =
-                //    RigidbodyConstraints.None;
+            OnCutSceneCompleteAction?.Invoke();
+            OnCutSceneCompleteEvent?.Invoke();
 
-                OnCutSceneCompleteAction?.Invoke();
-                OnCutSceneCompleteEvent?.Invoke();
+#if USE_TIMELINE_AkaitoAi
+            levelCutScenes[cutSceneCount].director.Stop();
+#endif
 
-                levelCutScenes[cutSceneCount].director.Stop();
+            cutsceneContainer.SetActive(false);
 
-                cutsceneContainer.SetActive(false);
+            levelCutScenes[cutSceneCount].cutScenePart = 0;
 
-                levelCutScenes[cutSceneCount].cutScenePart = 0;
-
-                cutSceneCount++;
-            }
+            cutSceneCount = cutSceneCount >= levelCutScenes.Length - 1 ? 0 : ++cutSceneCount;
         }
 
-        #endregion
+#endregion
     }
 }
