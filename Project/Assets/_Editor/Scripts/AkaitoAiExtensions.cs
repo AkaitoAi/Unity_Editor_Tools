@@ -2580,6 +2580,18 @@ namespace AkaitoAi.Extensions
 
             return layerMask;
         }
+
+        public static void SetLayerRecursively(this GameObject obj, string layerName)
+        {
+            if (obj == null || string.IsNullOrEmpty(layerName)) return;
+
+            obj.layer = LayerMask.NameToLayer(layerName);
+
+            foreach (Transform child in obj.transform)
+            {
+                SetLayerRecursively(child.gameObject, layerName);
+            }
+        }
         #endregion
 
         #region UI
