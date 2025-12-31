@@ -1452,8 +1452,6 @@ namespace AkaitoAi.Extensions
 
         #endregion
 
-        
-        
         #region WaitFor
         static readonly WaitForFixedUpdate fixedUpdate = new WaitForFixedUpdate();
         public static WaitForFixedUpdate FixedUpdate => fixedUpdate;
@@ -3160,6 +3158,29 @@ namespace AkaitoAi.Extensions
             onFinish?.Invoke();
         }
 
+        public static bool HasParameter(this Animator animator, string paramName)
+        {
+            if (animator == null) return false;
+
+            foreach (var param in animator.parameters)
+            {
+                if (param.name == paramName)
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool HasParameter(this Animator animator, int paramHash)
+        {
+            if (animator == null) return false;
+
+            foreach (var param in animator.parameters)
+            {
+                if (param.nameHash == paramHash)
+                    return true;
+            }
+            return false;
+        }
 
         #endregion
 
