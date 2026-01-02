@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.Events;
 #if USE_TIMELINE_AkaitoAi
 using UnityEngine.Playables;
+//using UnityEngine.Serialization;
 using UnityEngine.Timeline;
 #endif
 
@@ -16,8 +17,12 @@ namespace AkaitoAi.Timeline
     {
         //[SerializeField] private GameObject cutsceneScreen, resumeScreen;
         [SerializeField] private bool playLevelStartCS = false;
-        [SerializeField] private GameObject cutsceneContainer;
+        /*[FormerlySerializedAs("cutsceneContainer")]*/
+        [field: SerializeField] public GameObject MainContainer { get; private set; }
+        
+        [Space(10)]
         public CutSceneSetup[] levelCutScenes;
+
         private int cutSceneCount = 0;
         public bool PlayLevelStartCS => playLevelStartCS;
         public int CutSceneCount { get => cutSceneCount; set => cutSceneCount = value; }
@@ -28,9 +33,13 @@ namespace AkaitoAi.Timeline
             public GameObject cutsceneObj;
 #if USE_TIMELINE_AkaitoAi
             public PlayableDirector director;
+
+            [Header("Playables")]
             public PlayableAsset[] cutsceneParts;
 #endif
-            public UnityEvent OnPlayEvent, OnEndEvent;
+            [Header("Local Events")]
+            public UnityEvent OnPlayEvent;
+            public UnityEvent OnEndEvent;
             internal int cutScenePart;
         }
 
@@ -41,7 +50,9 @@ namespace AkaitoAi.Timeline
         public static event Action<float> OnFadeInScreenAction;
         public static event Action<float> OnFadeOutScreenAction;
 
-        public UnityEvent OnStartEvent;
+        [Header("Global Events")]
+        public UnityEvent OnStartEvent; 
+        public UnityEvent OnEnableEvent; 
         public UnityEvent OnCutSceneStartEvent;
         public UnityEvent OnCutSceneNextPartStartEvent;
         public UnityEvent OnCutSceneCompleteEvent;
@@ -52,9 +63,22 @@ namespace AkaitoAi.Timeline
         {
             if(gameManager == null) gameManager = GameManager.GetInstance();
 
-            if (playLevelStartCS) PlayCutScene();
-
             OnStartEvent?.Invoke();
+        }
+
+        private void OnEnable()
+        {
+            if (playLevelStartCS)
+            {
+#if USE_TIMELINE_AkaitoAi
+                levelCutScenes[cutSceneCount].cutScenePart = 0;
+
+                cutSceneCount = 0;
+#endif
+                PlayCutScene();
+            }
+
+            OnEnableEvent?.Invoke();
         }
 
         #region Signals
@@ -81,6 +105,9 @@ namespace AkaitoAi.Timeline
                 return;
             }
 #endif
+            SoundManager.Instance.menuBGAudioSource.volume = SoundManager.Instance.menuBGAudioSource.volume < .125f ? .125f 
+                : SoundManager.Instance.menuBGAudioSource.volume;
+
             EnableCutScene(levelCutScenes[cutSceneCount].cutsceneObj);
 
             //TODO Sound Calling
@@ -113,6 +140,9 @@ namespace AkaitoAi.Timeline
         [ContextMenu("Stop Cutscene")]
         public void StopCutScene()  //TODO Add Emitter at the end of timeline length
         {
+            SoundManager.Instance.menuBGAudioSource.volume = 
+                PlayerPrefs.GetFloat(gameManager?.setupScriptable.bGGPVolumePref);
+
             DisableCutScene(levelCutScenes[cutSceneCount].cutsceneObj);
 
             //TODO Sound Calling
@@ -159,7 +189,7 @@ namespace AkaitoAi.Timeline
                 return;
             }
 
-            cutsceneContainer.SetActive(true);
+            MainContainer.SetActive(true);
 
             //TODO Switch to Cutscene Screen
             gameManager.State = GameplayScreens.CutScene;
@@ -210,7 +240,7 @@ namespace AkaitoAi.Timeline
             levelCutScenes[cutSceneCount].director.Stop();
 #endif
 
-            cutsceneContainer.SetActive(false);
+            MainContainer.SetActive(false);
 
             levelCutScenes[cutSceneCount].cutScenePart = 0;
 
