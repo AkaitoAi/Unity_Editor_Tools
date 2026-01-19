@@ -478,6 +478,17 @@ namespace AkaitoAi.Extensions
             return null;
         }
 
+        public static bool TryGetComponentHierarchy<T>(this Transform t, out T component) where T : Component
+        {
+            component =
+                t.GetComponent<T>()
+                ?? t.GetComponentInParent<T>()
+                ?? t.GetComponentInChildren<T>();
+
+            return component != null;
+        }
+
+
         public static bool IsInCullingMask(this GameObject gameObject, LayerMask cullingMask)
         {
             return (cullingMask & (1 << gameObject.layer)) != 0;
