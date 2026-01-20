@@ -16,8 +16,8 @@ namespace AkaitoAi
 
         [SerializeField][Tooltip("Should the game show unity debug logs?")] private bool debugMode = false;
         [SerializeField][Tooltip("Should change the quality settings automatically, based on system memory size, divided in 3 steps.")] private bool autoDetectGraphicSettings = true;
-        [SerializeField][Tooltip("-1: Uncapped | 0: Cap to Refreshrate | n: Cap to n")][Range(-1, 60)] private int lockFramerate = 60;
-        [SerializeField][Tooltip("-1: Skips | 1: Quality | .9: Balanced | .75 : Performance, below .5 is ignored")][Range(-1, 1)] private float resolutionScale = -1;
+        [SerializeField][Tooltip("-1: Uncapped | 0: Cap to Refreshrate | n: Cap to n")][Range(-1, 240)] private int lockFramerate = 60;
+        [SerializeField][Tooltip("-1: Skips | 1: Quality | 0.9: Balanced | 0.75 : Performance, below 0.5 is ignored")][Range(-1, 1)] private float resolutionScale = -1;
         [SerializeField] private int lowMemoryDevice = 3072;
 
         private int systemMemorySize;
@@ -70,17 +70,17 @@ namespace AkaitoAi
         {
             QualitySettings.vSyncCount = 0;
 
-            if (systemMemorySize <= lowMemoryDevice || lockFramerate != 0)
-            {
-                Application.targetFrameRate = lockFramerate;
-                return;
-            }
+            Application.targetFrameRate = systemMemorySize <= lowMemoryDevice || lockFramerate != 0? 
+                lockFramerate : CalculateTargetFrameRate();
 
-            int refreshRate = Mathf.RoundToInt(
+            int CalculateTargetFrameRate()
+            {
+                int refreshRate = Mathf.RoundToInt(
                 (float)Screen.currentResolution.refreshRateRatio.value
             );
+                return Mathf.Max(60, refreshRate);
+            }
 
-            Application.targetFrameRate = Mathf.Max(60, refreshRate);
         } // Sets max fps with regards to device ram
         public void CollectGarbage() => System.GC.Collect(); // Use this to manually collect garage if incremental GC is disabled
         public void SetResolution(float percentage)
@@ -114,26 +114,8 @@ namespace AkaitoAi
         }
         private void AutoDetectGraphicSettings()
         {
-            if (SystemMemorySize <= 3072)
-            {
-                AutoChangeQualitySetting(0);
-
-                return;
-            }
-
-            if (SystemMemorySize > 3072 && SystemMemorySize <= 4096)
-            {
-                AutoChangeQualitySetting(1);
-
-                return;
-            }
-
-            if (SystemMemorySize > 4096)
-            {
-                AutoChangeQualitySetting(2);
-
-                return;
-            }
+            AutoChangeQualitySetting(SystemMemorySize <= 3072? 0 : 
+                SystemMemorySize > 3072 && SystemMemorySize <= 4096? 1 : 2);
 
             void AutoChangeQualitySetting(int _qualityIndex)
             {
