@@ -1,6 +1,7 @@
+using AkaitoAi.Singleton;
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using AkaitoAi.Singleton;
 
 namespace AkaitoAi
 {
@@ -13,12 +14,18 @@ namespace AkaitoAi
         public int SystemMemorySize { get => systemMemorySize; private set => systemMemorySize = value; }
         #endregion
 
+        [SerializeField][Tooltip("Should the game show unity debug logs?")] private bool debugMode = false;
+        [SerializeField][Tooltip("Should change the quality settings automatically, based on system memory size, divided in 3 steps.")] private bool autoDetectGraphicSettings = true;
+        [SerializeField][Tooltip("-1: Uncapped | 0: Cap to Refreshrate | n: Cap to n")][Range(-1, 60)] private int lockFramerate = 60;
+        [SerializeField][Tooltip("-1: Skips | 1: Quality | .9: Balanced | .75 : Performance, below .5 is ignored")][Range(-1, 1)] private float resolutionScale = -1;
         [SerializeField] private int lowMemoryDevice = 3072;
 
         private int systemMemorySize;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
+
             systemMemorySize = SystemInfo.systemMemorySize;
 
             //if (Instance != null && Instance != this) { Destroy(this.gameObject); return; }
@@ -32,10 +39,11 @@ namespace AkaitoAi
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             SetFrameRate();
-            DisableLogging();
-            DisableVSync();
+            if (!debugMode) DisableLogging();
+            if (resolutionScale != -1) SetResolution(resolutionScale);
+            if (autoDetectGraphicSettings) AutoDetectGraphicSettings();
+            //DisableVSync();
             DisableScreenTimeout();
-            AutoDetectGraphicSettings();
 
             Debug.Log("OnSceneLoaded: " + scene.name);
             Debug.Log(mode);
@@ -57,37 +65,52 @@ namespace AkaitoAi
 #endif
         } // Disables debug calls in build
         private void DisableScreenTimeout() => Screen.sleepTimeout = SleepTimeout.NeverSleep; // Keep device screen awake
+
         private void SetFrameRate()
         {
-            if (systemMemorySize <= lowMemoryDevice)
-            {
-                Application.targetFrameRate = -1;
+            QualitySettings.vSyncCount = 0;
 
+            if (systemMemorySize <= lowMemoryDevice || lockFramerate != 0)
+            {
+                Application.targetFrameRate = lockFramerate;
                 return;
             }
 
-            if (systemMemorySize > lowMemoryDevice)
-            {
-                Application.targetFrameRate = Screen.currentResolution.refreshRate;
+            int refreshRate = Mathf.RoundToInt(
+                (float)Screen.currentResolution.refreshRateRatio.value
+            );
 
-                return;
-            }
+            Application.targetFrameRate = Mathf.Max(60, refreshRate);
         } // Sets max fps with regards to device ram
         public void CollectGarbage() => System.GC.Collect(); // Use this to manually collect garage if incremental GC is disabled
         public void SetResolution(float percentage)
         {
-            // Get the current screen resolution
-            int width = Screen.currentResolution.width;
-            int height = Screen.currentResolution.height;
+            float scale = Mathf.Clamp(percentage, .5f, 1f);
+            ScalableBufferManager.ResizeBuffers(percentage, percentage);
 
-            // Calculate the new resolution based on the percentage
-            int newWidth = Mathf.RoundToInt(width * percentage);
-            int newHeight = Mathf.RoundToInt(height * percentage);
+            Debug.Log( $"Scale: {scale} | " + $"WidthScale: {ScalableBufferManager.widthScaleFactor} | " + 
+                $"HeightScale: {ScalableBufferManager.heightScaleFactor} | " + $"Screen: {Screen.width}x{Screen.height}");
 
-            // Set the new screen resolution
-            Screen.SetResolution(newWidth, newHeight, Screen.fullScreen);
+            //For URP
+            //var urpAsset = (UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline;
+            //urpAsset.renderScale = Mathf.Clamp(scale, 0.5f, 1.5f);
 
-            Debug.Log($"Resolution set to: {newWidth}x{newHeight} ({percentage * 100}%)");
+
+            // Wont work on mobile, it is for desktop only
+            //percentage = Mathf.Clamp01(percentage);
+
+            //// Get the current screen resolution
+            //int baseWidth = Screen.width;
+            //int baseHeight = Screen.height;
+
+            //// Calculate the new resolution based on the percentage
+            //int newWidth = Mathf.RoundToInt(baseWidth * percentage);
+            //int newHeight = Mathf.RoundToInt(baseHeight * percentage);
+
+            //// Set the new screen resolution
+            //Screen.SetResolution(newWidth, newHeight, Screen.fullScreen);
+
+            //Debug.Log($"Resolution set to: {newWidth}x{newHeight} ({percentage * 100}%)");
         }
         private void AutoDetectGraphicSettings()
         {
