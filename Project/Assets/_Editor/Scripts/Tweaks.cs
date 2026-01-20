@@ -36,7 +36,31 @@ namespace AkaitoAi
             SceneManager.sceneLoaded += OnSceneLoaded;
         }
         // Called everytime scene loads.
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            // Prevent execution before Awake
+            if (!Application.isPlaying)
+                return;
+
+            resolutionScale = Mathf.Clamp(resolutionScale, -1f, 1f);
+            lockFramerate = Mathf.Clamp(lockFramerate, -1, 240);
+
+            Apply();
+        }
+#endif
+
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            Apply();
+
+            //Debug.Log("OnSceneLoaded: " + scene.name);
+            //Debug.Log(mode);
+
+        } // Calls the functions everytime scene loads
+
+        private void Apply()
         {
             SetFrameRate();
             if (!debugMode) DisableLogging();
@@ -44,11 +68,8 @@ namespace AkaitoAi
             if (autoDetectGraphicSettings) AutoDetectGraphicSettings();
             //DisableVSync();
             DisableScreenTimeout();
+        }
 
-            Debug.Log("OnSceneLoaded: " + scene.name);
-            Debug.Log(mode);
-
-        } // Calls the functions everytime scene loads
         private void DisableVSync()
         {
             if (!Application.isMobilePlatform) return;
@@ -88,8 +109,8 @@ namespace AkaitoAi
             float scale = Mathf.Clamp(percentage, .5f, 1f);
             ScalableBufferManager.ResizeBuffers(percentage, percentage);
 
-            Debug.Log( $"Scale: {scale} | " + $"WidthScale: {ScalableBufferManager.widthScaleFactor} | " + 
-                $"HeightScale: {ScalableBufferManager.heightScaleFactor} | " + $"Screen: {Screen.width}x{Screen.height}");
+            //Debug.Log( $"Scale: {scale} | " + $"WidthScale: {ScalableBufferManager.widthScaleFactor} | " + 
+            //    $"HeightScale: {ScalableBufferManager.heightScaleFactor} | " + $"Screen: {Screen.width}x{Screen.height}");
 
             //For URP
             //var urpAsset = (UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline;
