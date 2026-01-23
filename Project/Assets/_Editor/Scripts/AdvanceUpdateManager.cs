@@ -107,11 +107,19 @@ namespace AkaitoAi
 
         private void InvokeGroup(SubscriberGroup group)
         {
-            for (int i = 0; i < group.Subscribers.Count; i++)
+            for (int i = group.Subscribers.Count - 1; i >= 0; i--)
             {
+                var action = group.Subscribers[i];
+
+                if (action == null || action.Target == null)
+                {
+                    group.Subscribers.RemoveAt(i);
+                    continue;
+                }
+
                 try
                 {
-                    group.Subscribers[i]?.Invoke();
+                    action.Invoke();
                 }
                 catch (Exception ex)
                 {
@@ -119,6 +127,7 @@ namespace AkaitoAi
                 }
             }
         }
+
 
         #endregion
 
